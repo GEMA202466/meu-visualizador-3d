@@ -1,6 +1,6 @@
 // Variáveis globais
-let scene, camera, renderer, controls;
-let model;
+window.scene, window.camera, window.renderer, window.controls;
+window.model;
 let ambientLight, directionalLight, fillLight;
 let gridHelper;
 let autoRotate = false;

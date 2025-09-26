@@ -5,12 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visualizador 3D - Modelo BIM</title>
     <style>
-        body {
+        * {
             margin: 0;
             padding: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            font-family: 'Arial', sans-serif;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow: hidden;
+            background: #1a1a1a;
         }
         
         #container {
@@ -28,12 +32,16 @@
             font-size: 18px;
             z-index: 100;
             text-align: center;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
         }
         
         .spinner {
             border: 4px solid rgba(255, 255, 255, 0.3);
             border-radius: 50%;
-            border-top: 4px solid white;
+            border-top: 4px solid #667eea;
             width: 40px;
             height: 40px;
             animation: spin 1s linear infinite;
@@ -45,37 +53,236 @@
             100% { transform: rotate(360deg); }
         }
         
-        #controls {
-            position: absolute;
+        #toggleControls {
+            position: fixed;
             top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        #toggleControls:hover {
+            background: rgba(0, 0, 0, 0.9);
+            transform: scale(1.1);
+        }
+        
+        #controlsPanel {
+            position: fixed;
+            top: 20px;
+            right: 80px;
+            z-index: 999;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 25px;
+            border-radius: 15px;
+            color: white;
+            font-size: 14px;
+            max-width: 300px;
+            max-height: 80vh;
+            overflow-y: auto;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+        
+        #controlsPanel.hidden {
+            opacity: 0;
+            transform: translateX(100%);
+            pointer-events: none;
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .control-group:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        
+        .control-group h3 {
+            margin-bottom: 12px;
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .control-item {
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .control-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .control-item label {
+            font-size: 13px;
+            color: #ccc;
+            margin-right: 10px;
+            flex: 1;
+        }
+        
+        input[type="range"] {
+            flex: 1;
+            max-width: 120px;
+            margin-left: 10px;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #5a67d8;
+            transform: scale(1.2);
+        }
+        
+        input[type="color"] {
+            width: 40px;
+            height: 30px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            background: transparent;
+            margin-left: 10px;
+        }
+        
+        select {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 13px;
+            margin-left: 10px;
+            min-width: 100px;
+        }
+        
+        select option {
+            background: #2d2d2d;
+            color: white;
+        }
+        
+        input[type="checkbox"] {
+            margin-left: 10px;
+            transform: scale(1.2);
+            accent-color: #667eea;
+        }
+        
+        #basicControls {
+            position: absolute;
+            bottom: 20px;
             left: 20px;
             z-index: 10;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.8);
             padding: 15px;
             border-radius: 10px;
             color: white;
-            font-size: 14px;
+            font-size: 13px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
         
         #info {
             position: absolute;
             bottom: 20px;
-            left: 20px;
+            right: 20px;
             z-index: 10;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 12px;
             border-radius: 8px;
             color: white;
             font-size: 12px;
-            max-width: 300px;
+            max-width: 250px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
         
-        .control-item {
-            margin-bottom: 8px;
+        .control-item-full {
+            margin-bottom: 12px;
         }
         
-        .control-item:last-child {
-            margin-bottom: 0;
+        .control-item-full label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 13px;
+            color: #ccc;
+        }
+        
+        .gradient-controls {
+            display: none;
+        }
+        
+        .gradient-controls.active {
+            display: block;
+        }
+        
+        /* Scrollbar personalizada */
+        #controlsPanel::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        #controlsPanel::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+        
+        #controlsPanel::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+        }
+        
+        #controlsPanel::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+        
+        /* Responsividade */
+        @media (max-width: 768px) {
+            #controlsPanel {
+                right: 10px;
+                top: 70px;
+                max-width: 280px;
+                font-size: 13px;
+            }
+            
+            #toggleControls {
+                top: 15px;
+                right: 15px;
+                padding: 12px;
+                font-size: 18px;
+            }
+            
+            #basicControls, #info {
+                font-size: 11px;
+                padding: 10px;
+            }
         }
     </style>
 </head>
@@ -86,16 +293,78 @@
             <div>Carregando modelo 3D...</div>
         </div>
         
-        <div id="controls">
-            <div class="control-item"><strong>Controles:</strong></div>
-            <div class="control-item">🖱️ Arrastar: Rotacionar</div>
-            <div class="control-item">🔍 Scroll: Zoom</div>
-            <div class="control-item">⌨️ Shift + Arrastar: Pan</div>
+        <button id="toggleControls">⚙️</button>
+        
+        <div id="controlsPanel">
+            <div class="control-group">
+                <h3>🎨 Fundo</h3>
+                <div class="control-item-full">
+                    <label for="bgType">Tipo de fundo:</label>
+                    <select id="bgType">
+                        <option value="solid">Cor sólida</option>
+                        <option value="gradient">Gradiente</option>
+                    </select>
+                </div>
+                <div class="control-item solid-controls">
+                    <label>Cor:</label>
+                    <input type="color" id="bgColor" value="#f0f0f0">
+                </div>
+                <div class="gradient-controls">
+                    <div class="control-item">
+                        <label>Superior:</label>
+                        <input type="color" id="gradientTop" value="#667eea">
+                    </div>
+                    <div class="control-item">
+                        <label>Inferior:</label>
+                        <input type="color" id="gradientBottom" value="#764ba2">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>💡 Iluminação</h3>
+                <div class="control-item">
+                    <label>Cor da luz:</label>
+                    <input type="color" id="lightColor" value="#ffffff">
+                </div>
+                <div class="control-item">
+                    <label>Ambiente:</label>
+                    <input type="range" id="ambientIntensity" min="0" max="2" step="0.1" value="0.6">
+                </div>
+                <div class="control-item">
+                    <label>Principal:</label>
+                    <input type="range" id="directionalIntensity" min="0" max="3" step="0.1" value="0.8">
+                </div>
+                <div class="control-item">
+                    <label>Preenchimento:</label>
+                    <input type="range" id="fillIntensity" min="0" max="2" step="0.1" value="0.3">
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>🎭 Modelo</h3>
+                <div class="control-item">
+                    <label>Transparência:</label>
+                    <input type="range" id="modelOpacity" min="0.1" max="1" step="0.1" value="1">
+                </div>
+                <div class="control-item">
+                    <label>Rotação automática:</label>
+                    <input type="checkbox" id="autoRotate">
+                </div>
+            </div>
+        </div>
+        
+        <div id="basicControls">
+            <div><strong>Controles Básicos:</strong></div>
+            <div>🖱️ Arrastar: Rotacionar</div>
+            <div>🔍 Scroll: Zoom</div>
+            <div>⌨️ Shift + Arrastar: Pan</div>
+            <div>👆 Duplo clique: Resetar</div>
         </div>
         
         <div id="info">
-            <strong>Visualizador 3D</strong><br>
-            Modelo de exemplo carregado com Three.js<br>
+            <strong>Visualizador 3D Avançado</strong><br>
+            Modelo interativo com controles personalizáveis<br>
             Compatível com Wix via iframe
         </div>
     </div>
@@ -106,5 +375,21 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     
     <script src="script.js"></script>
+    
+    <script>
+        // Controle de visibilidade dos controles de gradiente
+        document.getElementById('bgType').addEventListener('change', function(e) {
+            const gradientControls = document.querySelector('.gradient-controls');
+            const solidControls = document.querySelector('.solid-controls');
+            
+            if (e.target.value === 'gradient') {
+                gradientControls.classList.add('active');
+                solidControls.style.display = 'none';
+            } else {
+                gradientControls.classList.remove('active');
+                solidControls.style.display = 'flex';
+            }
+        });
+    </script>
 </body>
 </html>

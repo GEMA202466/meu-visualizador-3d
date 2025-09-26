@@ -64,16 +64,28 @@ Para incorporar o visualizador no seu site Wix:
 
 3.  Ajuste a `width` e `height` conforme necessário para o layout do seu site.
 
-## Personalização
+## Personalização e Controles Interativos
 
-Você pode personalizar o visualizador editando o arquivo `script.js`:
+O visualizador agora inclui um painel de controle interativo que permite ajustar diversas propriedades em tempo real, sem a necessidade de editar o código. Para acessar o painel, clique no ícone de engrenagem (⚙️) no canto superior direito da tela.
 
-*   **Cores de Fundo:** Altere `scene.background = new THREE.Color(0xf0f0f0);` para a cor desejada (ex: `0xabcdef`).
-*   **Luzes:** Ajuste as propriedades das luzes (`ambientLight`, `directionalLight`, `fillLight`) para mudar a iluminação do modelo.
-*   **Controles:** Modifique as propriedades de `OrbitControls` para alterar a sensibilidade ou o comportamento da navegação.
-*   **Escala e Posição do Modelo:** A lógica de centralização e escala do modelo está em `loadModel()`. Você pode ajustá-la se seu modelo precisar de um tratamento específico.
+### Controles do Painel:
 
-## Controles do Visualizador
+*   **Fundo:**
+    *   **Tipo de fundo:** Escolha entre `Cor sólida` ou `Gradiente`.
+    *   **Cor (sólida):** Selecione a cor de fundo desejada.
+    *   **Gradiente (Superior/Inferior):** Defina as cores para o gradiente de fundo.
+
+*   **Iluminação:**
+    *   **Cor da luz:** Altere a cor geral das luzes na cena.
+    *   **Ambiente:** Ajuste a intensidade da luz ambiente (iluminação geral).
+    *   **Principal:** Controle a intensidade da luz direcional principal (com sombras).
+    *   **Preenchimento:** Ajuste a intensidade da luz de preenchimento (para suavizar sombras).
+
+*   **Modelo:**
+    *   **Transparência:** Altere a opacidade do modelo 3D (de 0.1 a 1.0).
+    *   **Rotação automática:** Ative ou desative a rotação automática do modelo.
+
+### Controles Básicos do Visualizador:
 
 *   **Arrastar (mouse):** Rotacionar o modelo.
 *   **Scroll (mouse):** Zoom in/out.

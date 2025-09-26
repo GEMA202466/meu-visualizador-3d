@@ -99,3 +99,6 @@ O visualizador agora inclui um painel de controle interativo que permite ajustar
 --- 
 
 Desenvolvido por Manus AI.
+
+
+

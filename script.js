@@ -57,7 +57,7 @@ function init() {
     controls.dampingFactor = 0.05;
     controls.screenSpacePanning = false;
     controls.minDistance = 1;
-    controls.maxDistance = 50;
+    controls.maxDistance = 200; // Aumentado para acomodar modelos maiores
     // Remover restrição de rotação vertical para permitir visualizar a parte inferior
     // controls.maxPolarAngle = Math.PI / 2; // Comentado para permitir rotação completa
     controls.autoRotate = settings.autoRotate;
@@ -199,14 +199,16 @@ function loadModel() {
             
             // Escalar para caber na tela
             const maxDim = Math.max(size.x, size.y, size.z);
-            const scale = 3 / maxDim;
+            // Ajustar a escala para um valor mais adequado para modelos BIM, que podem ser grandes
+            const scale = 10 / maxDim; // Aumentado de 3 para 10 para melhor visibilidade
             model.scale.setScalar(scale);
             
             scene.add(model);
             
             // Ajustar câmera
-            const distance = maxDim * scale * 2;
-            camera.position.set(distance, distance, distance);
+            const distance = maxDim * scale * 2; // Distância base
+            // Ajustar a posição da câmera para garantir que o modelo esteja visível
+            camera.position.set(distance * 1.5, distance * 1.5, distance * 1.5); // Aumentar a distância inicial
             controls.target.set(0, 0, 0);
             controls.update();
             

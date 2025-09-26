@@ -351,6 +351,30 @@
                     <label>Rotação automática:</label>
                     <input type="checkbox" id="autoRotate">
                 </div>
+                <div class="control-item">
+                    <label>Cores originais:</label>
+                    <input type="checkbox" id="useOriginalColors" checked>
+                </div>
+                <div class="control-item">
+                    <label>Cor sólida:</label>
+                    <input type="color" id="modelColor" value="#ffffff">
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>🎯 Ponto de Rotação</h3>
+                <div class="control-item">
+                    <label>X:</label>
+                    <input type="range" id="rotationPointX" min="-10" max="10" step="0.1" value="0">
+                </div>
+                <div class="control-item">
+                    <label>Y:</label>
+                    <input type="range" id="rotationPointY" min="-10" max="10" step="0.1" value="0">
+                </div>
+                <div class="control-item">
+                    <label>Z:</label>
+                    <input type="range" id="rotationPointZ" min="-10" max="10" step="0.1" value="0">
+                </div>
             </div>
             
             <div class="control-group">
@@ -362,6 +386,39 @@
                 <div class="control-item">
                     <label>Cor da grade:</label>
                     <input type="color" id="gridColor" value="#888888">
+                </div>
+                <div class="control-item">
+                    <label>Posição X:</label>
+                    <input type="range" id="gridPositionX" min="-20" max="20" step="0.5" value="0">
+                </div>
+                <div class="control-item">
+                    <label>Posição Y:</label>
+                    <input type="range" id="gridPositionY" min="-20" max="20" step="0.5" value="0">
+                </div>
+                <div class="control-item">
+                    <label>Posição Z:</label>
+                    <input type="range" id="gridPositionZ" min="-20" max="20" step="0.5" value="0">
+                </div>
+                <div class="control-item">
+                    <label>Rotação X (°):</label>
+                    <input type="range" id="gridRotationX" min="-180" max="180" step="5" value="0">
+                </div>
+                <div class="control-item">
+                    <label>Rotação Y (°):</label>
+                    <input type="range" id="gridRotationY" min="-180" max="180" step="5" value="0">
+                </div>
+                <div class="control-item">
+                    <label>Rotação Z (°):</label>
+                    <input type="range" id="gridRotationZ" min="-180" max="180" step="5" value="0">
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>📁 Modelo Externo</h3>
+                <div class="control-item-full">
+                    <label for="externalModelUrl">URL do modelo GLB:</label>
+                    <input type="url" id="externalModelUrl" placeholder="https://exemplo.com/modelo.glb" style="width: 100%; margin-bottom: 8px;">
+                    <button id="loadExternalModel" style="width: 100%; padding: 8px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">Carregar Modelo</button>
                 </div>
             </div>
         </div>

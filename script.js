@@ -21,7 +21,25 @@ const settings = {
     showGrid: true,
     gridSize: 20,
     gridDivisions: 20,
-    gridColor: '#888888'
+    gridColor: '#888888',
+    gridPositionX: 0,
+    gridPositionY: 0,
+    gridPositionZ: 0,
+    gridRotationX: 0,
+    gridRotationY: 0,
+    gridRotationZ: 0,
+    
+    // Ponto de rotação
+    rotationPointX: 0,
+    rotationPointY: 0,
+    rotationPointZ: 0,
+    
+    // Cores do modelo
+    useOriginalColors: true,
+    modelColor: '#ffffff',
+    
+    // Modelo externo
+    externalModelUrl: ''
 };
 
 // Inicialização
@@ -62,6 +80,9 @@ function init() {
     // controls.maxPolarAngle = Math.PI / 2; // Comentado para permitir rotação completa
     controls.autoRotate = settings.autoRotate;
     controls.autoRotateSpeed = 2.0;
+    
+    // Configurar ponto de rotação inicial
+    updateRotationPoint();
     
     // Adicionar luzes
     setupLights();
@@ -144,14 +165,86 @@ function setupGrid() {
         settings.gridColor
     );
     
-    // Posicionar a grade no chão (y = 0)
-    gridHelper.position.y = 0;
+    // Aplicar posição e rotação da grade
+    updateGridTransform();
     
     // Adicionar à cena
     scene.add(gridHelper);
     
     // Controlar visibilidade inicial
     gridHelper.visible = settings.showGrid;
+}
+
+function updateGridTransform() {
+    if (gridHelper) {
+        // Atualizar posição
+        gridHelper.position.set(
+            settings.gridPositionX,
+            settings.gridPositionY,
+            settings.gridPositionZ
+        );
+        
+        // Atualizar rotação (converter graus para radianos)
+        gridHelper.rotation.set(
+            THREE.MathUtils.degToRad(settings.gridRotationX),
+            THREE.MathUtils.degToRad(settings.gridRotationY),
+            THREE.MathUtils.degToRad(settings.gridRotationZ)
+        );
+    }
+}
+
+function updateRotationPoint() {
+    if (controls) {
+        // Atualizar o ponto alvo dos controles de órbita
+        controls.target.set(
+            settings.rotationPointX,
+            settings.rotationPointY,
+            settings.rotationPointZ
+        );
+        controls.update();
+    }
+}
+
+function updateModelColors() {
+    if (model) {
+        model.traverse(function(child) {
+            if (child.isMesh && child.material) {
+                if (settings.useOriginalColors) {
+                    // Restaurar material original
+                    if (child.userData.originalMaterial) {
+                        child.material = child.userData.originalMaterial.clone();
+                        child.material.transparent = true;
+                        child.material.opacity = settings.modelOpacity;
+                    }
+                } else {
+                    // Aplicar cor sólida
+                    const solidColor = new THREE.Color(settings.modelColor);
+                    child.material = new THREE.MeshLambertMaterial({
+                        color: solidColor,
+                        transparent: true,
+                        opacity: settings.modelOpacity
+                    });
+                }
+            }
+        });
+    }
+}
+
+function loadExternalModel() {
+    const url = settings.externalModelUrl.trim();
+    if (url) {
+        // Remover modelo atual se existir
+        if (model) {
+            scene.remove(model);
+            model = null;
+            window.model = null;
+        }
+        
+        // Carregar novo modelo
+        loadModel(url);
+    } else {
+        alert('Por favor, insira uma URL válida para o modelo GLB.');
+    }
 }
 
 function toggleGrid() {
@@ -167,22 +260,34 @@ function updateGridColor() {
     }
 }
 
-function loadModel() {
+function loadModel(modelUrl = null) {
     const loader = new THREE.GLTFLoader();
     
+    // Usar URL externa se fornecida, senão usar modelo padrão
+    const url = modelUrl || settings.externalModelUrl || 'modelo.glb';
+    
+    // Mostrar loading
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('loading').textContent = 'Carregando modelo...';
+    
     loader.load(
-        'modelo.glb', // Arquivo do modelo
+        url, // Arquivo do modelo
         function(gltf) {
             model = gltf.scene;
             window.model = model; // Tornar o modelo acessível globalmente para depuração
             console.log("GLTF carregado com sucesso:", gltf);
             console.log("Cena do modelo:", model);
             
-            // Configurar sombras e transparência
+            // Configurar sombras, transparência e cores
             model.traverse(function(child) {
                 if (child.isMesh) {
                     child.castShadow = true;
                     child.receiveShadow = true;
+                    
+                    // Armazenar material original para poder restaurar
+                    if (child.material && !child.userData.originalMaterial) {
+                        child.userData.originalMaterial = child.material.clone();
+                    }
                     
                     // Configurar material para transparência
                     if (child.material) {
@@ -191,6 +296,9 @@ function loadModel() {
                     }
                 }
             });
+            
+            // Aplicar configuração de cores inicial
+            updateModelColors();
             
             // Centralizar e escalar o modelo
             const box = new THREE.Box3().setFromObject(model);
@@ -221,14 +329,19 @@ function loadModel() {
             console.log('Modelo carregado com sucesso!');
         },
         function(progress) {
-            const percent = (progress.loaded / progress.total * 100).toFixed(0);
-            console.log('Carregando: ' + percent + '%');
+            console.log('Progresso:', (progress.loaded / progress.total * 100) + '%');
         },
         function(error) {
             console.error('Erro ao carregar modelo:', error);
             document.getElementById('loading').innerHTML = 
                 '<div style="color: #ff6b6b;">❌ Erro ao carregar modelo</div>' +
-                '<div style="font-size: 12px; margin-top: 10px;">Verifique se o arquivo modelo.glb existe</div>';
+                '<div style="font-size: 12px; margin-top: 10px;">Verifique se a URL está correta e acessível</div>';
+            
+            // Se falhou ao carregar modelo externo, tentar carregar o padrão
+            if (modelUrl && modelUrl !== 'modelo.glb') {
+                console.log('Tentando carregar modelo padrão...');
+                setTimeout(() => loadModel('modelo.glb'), 2000);
+            }
         }
     );
 }
@@ -368,6 +481,133 @@ function setupUIControls() {
             settings.gridColor = e.target.value;
             updateGridColor();
         });
+    }
+    
+    // Cores originais do modelo
+    const useOriginalColorsCheckbox = document.getElementById('useOriginalColors');
+    if (useOriginalColorsCheckbox) {
+        useOriginalColorsCheckbox.checked = settings.useOriginalColors;
+        useOriginalColorsCheckbox.addEventListener('change', function(e) {
+            settings.useOriginalColors = e.target.checked;
+            updateModelColors();
+        });
+    }
+    
+    // Cor sólida do modelo
+    const modelColorInput = document.getElementById('modelColor');
+    if (modelColorInput) {
+        modelColorInput.value = settings.modelColor;
+        modelColorInput.addEventListener('input', function(e) {
+            settings.modelColor = e.target.value;
+            if (!settings.useOriginalColors) {
+                updateModelColors();
+            }
+        });
+    }
+    
+    // Ponto de rotação X
+    const rotationPointXSlider = document.getElementById('rotationPointX');
+    if (rotationPointXSlider) {
+        rotationPointXSlider.value = settings.rotationPointX;
+        rotationPointXSlider.addEventListener('input', function(e) {
+            settings.rotationPointX = parseFloat(e.target.value);
+            updateRotationPoint();
+        });
+    }
+    
+    // Ponto de rotação Y
+    const rotationPointYSlider = document.getElementById('rotationPointY');
+    if (rotationPointYSlider) {
+        rotationPointYSlider.value = settings.rotationPointY;
+        rotationPointYSlider.addEventListener('input', function(e) {
+            settings.rotationPointY = parseFloat(e.target.value);
+            updateRotationPoint();
+        });
+    }
+    
+    // Ponto de rotação Z
+    const rotationPointZSlider = document.getElementById('rotationPointZ');
+    if (rotationPointZSlider) {
+        rotationPointZSlider.value = settings.rotationPointZ;
+        rotationPointZSlider.addEventListener('input', function(e) {
+            settings.rotationPointZ = parseFloat(e.target.value);
+            updateRotationPoint();
+        });
+    }
+    
+    // Posição da grade X
+    const gridPositionXSlider = document.getElementById('gridPositionX');
+    if (gridPositionXSlider) {
+        gridPositionXSlider.value = settings.gridPositionX;
+        gridPositionXSlider.addEventListener('input', function(e) {
+            settings.gridPositionX = parseFloat(e.target.value);
+            updateGridTransform();
+        });
+    }
+    
+    // Posição da grade Y
+    const gridPositionYSlider = document.getElementById('gridPositionY');
+    if (gridPositionYSlider) {
+        gridPositionYSlider.value = settings.gridPositionY;
+        gridPositionYSlider.addEventListener('input', function(e) {
+            settings.gridPositionY = parseFloat(e.target.value);
+            updateGridTransform();
+        });
+    }
+    
+    // Posição da grade Z
+    const gridPositionZSlider = document.getElementById('gridPositionZ');
+    if (gridPositionZSlider) {
+        gridPositionZSlider.value = settings.gridPositionZ;
+        gridPositionZSlider.addEventListener('input', function(e) {
+            settings.gridPositionZ = parseFloat(e.target.value);
+            updateGridTransform();
+        });
+    }
+    
+    // Rotação da grade X
+    const gridRotationXSlider = document.getElementById('gridRotationX');
+    if (gridRotationXSlider) {
+        gridRotationXSlider.value = settings.gridRotationX;
+        gridRotationXSlider.addEventListener('input', function(e) {
+            settings.gridRotationX = parseFloat(e.target.value);
+            updateGridTransform();
+        });
+    }
+    
+    // Rotação da grade Y
+    const gridRotationYSlider = document.getElementById('gridRotationY');
+    if (gridRotationYSlider) {
+        gridRotationYSlider.value = settings.gridRotationY;
+        gridRotationYSlider.addEventListener('input', function(e) {
+            settings.gridRotationY = parseFloat(e.target.value);
+            updateGridTransform();
+        });
+    }
+    
+    // Rotação da grade Z
+    const gridRotationZSlider = document.getElementById('gridRotationZ');
+    if (gridRotationZSlider) {
+        gridRotationZSlider.value = settings.gridRotationZ;
+        gridRotationZSlider.addEventListener('input', function(e) {
+            settings.gridRotationZ = parseFloat(e.target.value);
+            updateGridTransform();
+        });
+    }
+    
+    // URL do modelo externo
+    const externalModelUrlInput = document.getElementById('externalModelUrl');
+    if (externalModelUrlInput) {
+        externalModelUrlInput.value = settings.externalModelUrl;
+        externalModelUrlInput.addEventListener('input', function(e) {
+            settings.externalModelUrl = e.target.value;
+        });
+    }
+    
+    // Botão para carregar modelo externo
+    const loadExternalModelButton = document.getElementById('loadExternalModel');
+    if (loadExternalModelButton) {
+        loadExternalModelButton.addEventListener('click', loadExternalModel);
     }
     
     // Toggle do painel de controles

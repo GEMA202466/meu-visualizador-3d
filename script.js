@@ -175,6 +175,8 @@ function loadModel() {
         function(gltf) {
             model = gltf.scene;
             window.model = model; // Tornar o modelo acessível globalmente para depuração
+            console.log("GLTF carregado com sucesso:", gltf);
+            console.log("Cena do modelo:", model);
             
             // Configurar sombras e transparência
             model.traverse(function(child) {

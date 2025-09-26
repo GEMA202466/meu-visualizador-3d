@@ -85,9 +85,13 @@ O visualizador agora inclui um painel de controle interativo que permite ajustar
     *   **Transparência:** Altere a opacidade do modelo 3D (de 0.1 a 1.0).
     *   **Rotação automática:** Ative ou desative a rotação automática do modelo.
 
+*   **Grade do Chão:**
+    *   **Mostrar grade:** Ative ou desative a visibilidade do plano de grade.
+    *   **Cor da grade:** Altere a cor das linhas da grade.
+
 ### Controles Básicos do Visualizador:
 
-*   **Arrastar (mouse):** Rotacionar o modelo.
+*   **Arrastar (mouse):** Rotacionar o modelo (agora com rotação vertical completa).
 *   **Scroll (mouse):** Zoom in/out.
 *   **Shift + Arrastar (mouse):** Pan (mover o modelo lateralmente).
 *   **Duplo clique (mouse):** Resetar a visualização para a posição inicial.

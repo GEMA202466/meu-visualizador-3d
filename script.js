@@ -2,6 +2,7 @@
 let scene, camera, renderer, controls;
 let model;
 let ambientLight, directionalLight, fillLight;
+let gridHelper;
 let autoRotate = false;
 
 // Configurações padrão
@@ -16,7 +17,11 @@ const settings = {
     lightColor: '#ffffff',
     modelOpacity: 1.0,
     autoRotate: false,
-    rotationSpeed: 0.01
+    rotationSpeed: 0.01,
+    showGrid: true,
+    gridSize: 20,
+    gridDivisions: 20,
+    gridColor: '#888888'
 };
 
 // Inicialização
@@ -53,12 +58,16 @@ function init() {
     controls.screenSpacePanning = false;
     controls.minDistance = 1;
     controls.maxDistance = 50;
-    controls.maxPolarAngle = Math.PI / 2;
+    // Remover restrição de rotação vertical para permitir visualizar a parte inferior
+    // controls.maxPolarAngle = Math.PI / 2; // Comentado para permitir rotação completa
     controls.autoRotate = settings.autoRotate;
     controls.autoRotateSpeed = 2.0;
     
     // Adicionar luzes
     setupLights();
+    
+    // Adicionar plano de grade
+    setupGrid();
     
     // Carregar modelo
     loadModel();
@@ -124,6 +133,38 @@ function updateLights() {
     
     fillLight.color = lightColor;
     fillLight.intensity = settings.fillIntensity;
+}
+
+function setupGrid() {
+    // Criar plano de grade
+    gridHelper = new THREE.GridHelper(
+        settings.gridSize, 
+        settings.gridDivisions, 
+        settings.gridColor, 
+        settings.gridColor
+    );
+    
+    // Posicionar a grade no chão (y = 0)
+    gridHelper.position.y = 0;
+    
+    // Adicionar à cena
+    scene.add(gridHelper);
+    
+    // Controlar visibilidade inicial
+    gridHelper.visible = settings.showGrid;
+}
+
+function toggleGrid() {
+    if (gridHelper) {
+        gridHelper.visible = settings.showGrid;
+    }
+}
+
+function updateGridColor() {
+    if (gridHelper) {
+        const color = new THREE.Color(settings.gridColor);
+        gridHelper.material.color = color;
+    }
 }
 
 function loadModel() {
@@ -301,6 +342,26 @@ function setupUIControls() {
         autoRotateCheckbox.addEventListener('change', function(e) {
             settings.autoRotate = e.target.checked;
             controls.autoRotate = settings.autoRotate;
+        });
+    }
+    
+    // Mostrar grade
+    const showGridCheckbox = document.getElementById('showGrid');
+    if (showGridCheckbox) {
+        showGridCheckbox.checked = settings.showGrid;
+        showGridCheckbox.addEventListener('change', function(e) {
+            settings.showGrid = e.target.checked;
+            toggleGrid();
+        });
+    }
+    
+    // Cor da grade
+    const gridColorInput = document.getElementById('gridColor');
+    if (gridColorInput) {
+        gridColorInput.value = settings.gridColor;
+        gridColorInput.addEventListener('input', function(e) {
+            settings.gridColor = e.target.value;
+            updateGridColor();
         });
     }
     

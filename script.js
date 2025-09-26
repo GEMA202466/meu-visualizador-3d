@@ -1,6 +1,6 @@
 // Variáveis globais
-window.scene, window.camera, window.renderer, window.controls;
-window.model;
+let scene, camera, renderer, controls;
+let model;
 let ambientLight, directionalLight, fillLight;
 let gridHelper;
 let autoRotate = false;
@@ -174,6 +174,7 @@ function loadModel() {
         'modelo.glb', // Arquivo do modelo
         function(gltf) {
             model = gltf.scene;
+            window.model = model; // Tornar o modelo acessível globalmente para depuração
             
             // Configurar sombras e transparência
             model.traverse(function(child) {

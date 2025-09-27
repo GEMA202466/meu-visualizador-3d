@@ -84,10 +84,29 @@ O visualizador agora inclui um painel de controle interativo que permite ajustar
 *   **Modelo:**
     *   **Transparência:** Altere a opacidade do modelo 3D (de 0.1 a 1.0).
     *   **Rotação automática:** Ative ou desative a rotação automática do modelo.
+    *   **Cores originais:** Mantenha as cores originais do modelo ou use uma cor sólida.
+    *   **Cor sólida:** Defina uma cor sólida para o modelo (ativa quando "Cores originais" está desativado).
+
+*   **Ponto de Rotação:**
+    *   **X, Y, Z:** Ajuste as coordenadas do ponto em torno do qual o modelo irá rotacionar. Útil para inspecionar partes específicas do modelo.
 
 *   **Grade do Chão:**
     *   **Mostrar grade:** Ative ou desative a visibilidade do plano de grade.
     *   **Cor da grade:** Altere a cor das linhas da grade.
+    *   **Posição X, Y, Z:** Ajuste a posição da grade no espaço 3D.
+    *   **Rotação X, Y, Z (°):** Gire a grade nos eixos X, Y e Z (em graus).
+
+*   **Modelo Externo:**
+    *   **URL do modelo GLB:** Insira uma URL de um modelo GLB hospedado externamente (ex: Google Drive, Dropbox, GitHub Raw). O visualizador tentará carregar este modelo.
+    *   **Carregar Modelo:** Botão para carregar o modelo da URL fornecida.
+
+*   **Informações do Projeto:**
+    *   **Nome do Projeto, Etapa, Descrição, Responsável:** Campos para preencher detalhes sobre o projeto BIM.
+    *   **WhatsApp, E-mail:** Campos para informações de contato.
+
+*   **Compartilhamento:**
+    *   **📱 Gerar QR Code + CSV:** Gera um QR Code com todas as informações do projeto preenchidas e um link para o visualizador atual. Também baixa um arquivo CSV com esses dados.
+    *   **💬 Enviar WhatsApp:** Abre uma conversa no WhatsApp com uma mensagem pré-preenchida contendo as informações do projeto e o link do visualizador.
 
 ### Controles Básicos do Visualizador:
 

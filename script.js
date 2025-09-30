@@ -39,7 +39,15 @@ const settings = {
     modelColor: '#ffffff',
     
     // Modelo externo
-    externalModelUrl: ''
+    externalModelUrl: '',
+    
+    // Informações do projeto
+    projectName: '',
+    projectStage: '',
+    projectDescription: '',
+    projectResponsible: '',
+    whatsappNumber: '',
+    email: ''
 };
 
 // Inicialização
@@ -245,6 +253,244 @@ function loadExternalModel() {
     } else {
         alert('Por favor, insira uma URL válida para o modelo GLB.');
     }
+}
+
+function generateQRCode() {
+    // Verificar se os campos obrigatórios estão preenchidos
+    if (!settings.projectName || !settings.projectStage || !settings.projectDescription || !settings.projectResponsible) {
+        alert('Por favor, preencha todos os campos do projeto antes de gerar o QR Code.');
+        return;
+    }
+    
+    // Criar URL do visualizador com parâmetros
+    const baseUrl = window.location.href.split('?')[0];
+    const params = new URLSearchParams();
+    
+    if (settings.externalModelUrl) {
+        params.append('model', settings.externalModelUrl);
+    }
+    
+    const viewerUrl = baseUrl + (params.toString() ? '?' + params.toString() : '');
+    
+    // Criar dados do projeto para o QR Code
+    const projectData = {
+        projeto: settings.projectName,
+        etapa: settings.projectStage,
+        descricao: settings.projectDescription,
+        responsavel: settings.projectResponsible,
+        whatsapp: settings.whatsappNumber,
+        email: settings.email,
+        visualizador: viewerUrl,
+        data_geracao: new Date().toLocaleString('pt-BR')
+    };
+    
+    // Gerar CSV
+    generateCSV(projectData);
+    
+    // Gerar QR Code usando uma API pública
+    const qrData = JSON.stringify(projectData);
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrData)}`;
+    
+    // Mostrar QR Code em uma nova janela
+    const qrWindow = window.open('', '_blank', 'width=400,height=500');
+    qrWindow.document.write(`
+        <html>
+            <head>
+                <title>QR Code - ${settings.projectName}</title>
+                <style>
+                    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+                    .project-info { background: #f5f5f5; padding: 15px; margin: 20px 0; border-radius: 8px; text-align: left; }
+                    .project-info h3 { margin-top: 0; color: #333; }
+                    .project-info p { margin: 5px 0; }
+                    img { border: 2px solid #ddd; border-radius: 8px; }
+                </style>
+            </head>
+            <body>
+                <h2>QR Code do Projeto</h2>
+                <div class="project-info">
+                    <h3>Informações do Projeto</h3>
+                    <p><strong>Projeto:</strong> ${settings.projectName}</p>
+                    <p><strong>Etapa:</strong> ${settings.projectStage}</p>
+                    <p><strong>Descrição:</strong> ${settings.projectDescription}</p>
+                    <p><strong>Responsável:</strong> ${settings.projectResponsible}</p>
+                    ${settings.whatsappNumber ? `<p><strong>WhatsApp:</strong> ${settings.whatsappNumber}</p>` : ''}
+                    ${settings.email ? `<p><strong>E-mail:</strong> ${settings.email}</p>` : ''}
+                    <p><strong>Data de Geração:</strong> ${new Date().toLocaleString('pt-BR')}</p>
+                </div>
+                <img src="${qrCodeUrl}" alt="QR Code do Projeto" />
+                <p>Escaneie o QR Code para acessar o visualizador 3D</p>
+                <button onclick="window.print()" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 20px;">Imprimir</button>
+            </body>
+        </html>
+    `);
+}
+
+function generateCSV(projectData) {
+    // Criar cabeçalho CSV
+    const headers = ['Projeto', 'Etapa', 'Descrição', 'Responsável', 'WhatsApp', 'E-mail', 'URL_Visualizador', 'Data_Geração'];
+    
+    // Criar linha de dados
+    const row = [
+        projectData.projeto,
+        projectData.etapa,
+        projectData.descricao,
+        projectData.responsavel,
+        projectData.whatsapp,
+        projectData.email,
+        projectData.visualizador,
+        projectData.data_geracao
+    ];
+    
+    // Escapar aspas e vírgulas nos dados
+    const escapedRow = row.map(field => {
+        if (typeof field === 'string' && (field.includes(',') || field.includes('"') || field.includes('\n'))) {
+            return `"${field.replace(/"/g, '""')}"`;
+        }
+        return field;
+    });
+    
+    // Criar conteúdo CSV
+    const csvContent = [headers.join(','), escapedRow.join(',')].join('\n');
+    
+    // Criar e baixar arquivo CSV
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `projeto_${settings.projectName.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function sendWhatsAppMessage() {
+    if (!settings.whatsappNumber) {
+        alert('Por favor, insira um número de WhatsApp válido.');
+        return;
+    }
+    
+    const message = `🏗️ *Projeto BIM: ${settings.projectName}*\n\n` +
+                   `📋 *Etapa:* ${settings.projectStage}\n` +
+                   `📝 *Descrição:* ${settings.projectDescription}\n` +
+                   `👤 *Responsável:* ${settings.projectResponsible}\n\n` +
+                   `🔗 *Visualizador 3D:* ${window.location.href}\n\n` +
+                   `📅 *Gerado em:* ${new Date().toLocaleString('pt-BR')}`;
+    
+    const whatsappUrl = `https://wa.me/${settings.whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+}
+
+function loadModelFromFile(file) {
+    if (!file) {
+        alert('Por favor, selecione um arquivo GLB válido.');
+        return;
+    }
+    
+    // Verificar se é um arquivo GLB ou GLTF
+    const validTypes = ['model/gltf-binary', 'model/gltf+json', 'application/octet-stream'];
+    const validExtensions = ['.glb', '.gltf'];
+    const fileName = file.name.toLowerCase();
+    const hasValidExtension = validExtensions.some(ext => fileName.endsWith(ext));
+    
+    if (!validTypes.includes(file.type) && !hasValidExtension) {
+        alert('Por favor, selecione um arquivo GLB ou GLTF válido.');
+        return;
+    }
+    
+    // Mostrar loading
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('loading').textContent = 'Carregando arquivo...';
+    
+    // Criar FileReader para ler o arquivo
+    const reader = new FileReader();
+    
+    reader.onload = function(event) {
+        const arrayBuffer = event.target.result;
+        
+        // Remover modelo atual se existir
+        if (model) {
+            scene.remove(model);
+            model = null;
+            window.model = null;
+        }
+        
+        // Carregar modelo usando GLTFLoader
+        const loader = new THREE.GLTFLoader();
+        
+        loader.parse(arrayBuffer, '', function(gltf) {
+            model = gltf.scene;
+            window.model = model; // Tornar o modelo acessível globalmente para depuração
+            console.log("Arquivo GLB carregado com sucesso:", gltf);
+            console.log("Cena do modelo:", model);
+            
+            // Configurar sombras, transparência e cores
+            model.traverse(function(child) {
+                if (child.isMesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                    
+                    // Armazenar material original para poder restaurar
+                    if (child.material && !child.userData.originalMaterial) {
+                        child.userData.originalMaterial = child.material.clone();
+                    }
+                    
+                    // Configurar material para transparência
+                    if (child.material) {
+                        child.material.transparent = true;
+                        child.material.opacity = settings.modelOpacity;
+                    }
+                }
+            });
+            
+            // Aplicar configuração de cores inicial
+            updateModelColors();
+            
+            // Centralizar e escalar o modelo
+            const box = new THREE.Box3().setFromObject(model);
+            const center = box.getCenter(new THREE.Vector3());
+            const size = box.getSize(new THREE.Vector3());
+            
+            // Mover modelo para o centro
+            model.position.sub(center);
+            
+            // Escalar modelo se necessário (opcional)
+            const maxDim = Math.max(size.x, size.y, size.z);
+            if (maxDim > 20) {
+                const scale = 20 / maxDim;
+                model.scale.setScalar(scale);
+            }
+            
+            // Adicionar modelo à cena
+            scene.add(model);
+            
+            // Ajustar câmera para visualizar o modelo
+            const distance = Math.max(size.x, size.y, size.z) * 2;
+            camera.position.set(distance, distance, distance);
+            controls.target.set(0, 0, 0);
+            controls.update();
+            
+            // Esconder loading
+            document.getElementById('loading').style.display = 'none';
+            
+            console.log('Arquivo carregado com sucesso!');
+        }, function(error) {
+            console.error('Erro ao processar arquivo:', error);
+            document.getElementById('loading').innerHTML = 
+                '<div style="color: #ff6b6b;">❌ Erro ao processar arquivo</div>' +
+                '<div style="font-size: 12px; margin-top: 10px;">Verifique se o arquivo é um GLB válido</div>';
+        });
+    };
+    
+    reader.onerror = function() {
+        console.error('Erro ao ler arquivo');
+        document.getElementById('loading').innerHTML = 
+            '<div style="color: #ff6b6b;">❌ Erro ao ler arquivo</div>' +
+            '<div style="font-size: 12px; margin-top: 10px;">Tente novamente com outro arquivo</div>';
+    };
+    
+    // Ler arquivo como ArrayBuffer
+    reader.readAsArrayBuffer(file);
 }
 
 function toggleGrid() {
@@ -604,10 +850,81 @@ function setupUIControls() {
         });
     }
     
+    // Campo de upload de arquivo
+    const fileUploadInput = document.getElementById('fileUpload');
+    if (fileUploadInput) {
+        fileUploadInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                loadModelFromFile(file);
+            }
+        });
+    }
+    
     // Botão para carregar modelo externo
     const loadExternalModelButton = document.getElementById('loadExternalModel');
     if (loadExternalModelButton) {
         loadExternalModelButton.addEventListener('click', loadExternalModel);
+    }
+    
+    // Campos de informações do projeto
+    const projectNameInput = document.getElementById('projectName');
+    if (projectNameInput) {
+        projectNameInput.value = settings.projectName;
+        projectNameInput.addEventListener('input', function(e) {
+            settings.projectName = e.target.value;
+        });
+    }
+    
+    const projectStageInput = document.getElementById('projectStage');
+    if (projectStageInput) {
+        projectStageInput.value = settings.projectStage;
+        projectStageInput.addEventListener('input', function(e) {
+            settings.projectStage = e.target.value;
+        });
+    }
+    
+    const projectDescriptionInput = document.getElementById('projectDescription');
+    if (projectDescriptionInput) {
+        projectDescriptionInput.value = settings.projectDescription;
+        projectDescriptionInput.addEventListener('input', function(e) {
+            settings.projectDescription = e.target.value;
+        });
+    }
+    
+    const projectResponsibleInput = document.getElementById('projectResponsible');
+    if (projectResponsibleInput) {
+        projectResponsibleInput.value = settings.projectResponsible;
+        projectResponsibleInput.addEventListener('input', function(e) {
+            settings.projectResponsible = e.target.value;
+        });
+    }
+    
+    const whatsappNumberInput = document.getElementById('whatsappNumber');
+    if (whatsappNumberInput) {
+        whatsappNumberInput.value = settings.whatsappNumber;
+        whatsappNumberInput.addEventListener('input', function(e) {
+            settings.whatsappNumber = e.target.value;
+        });
+    }
+    
+    const emailInput = document.getElementById('email');
+    if (emailInput) {
+        emailInput.value = settings.email;
+        emailInput.addEventListener('input', function(e) {
+            settings.email = e.target.value;
+        });
+    }
+    
+    // Botões de compartilhamento
+    const generateQRCodeButton = document.getElementById('generateQRCode');
+    if (generateQRCodeButton) {
+        generateQRCodeButton.addEventListener('click', generateQRCode);
+    }
+    
+    const sendWhatsAppButton = document.getElementById('sendWhatsApp');
+    if (sendWhatsAppButton) {
+        sendWhatsAppButton.addEventListener('click', sendWhatsAppMessage);
     }
     
     // Toggle do painel de controles

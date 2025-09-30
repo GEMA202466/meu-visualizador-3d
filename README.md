@@ -97,8 +97,9 @@ O visualizador agora inclui um painel de controle interativo que permite ajustar
     *   **Rotação X, Y, Z (°):** Gire a grade nos eixos X, Y e Z (em graus).
 
 *   **Modelo Externo:**
+    *   **Upload de arquivo GLB:** Permite carregar um modelo GLB ou GLTF diretamente do seu computador.
     *   **URL do modelo GLB:** Insira uma URL de um modelo GLB hospedado externamente (ex: Google Drive, Dropbox, GitHub Raw). O visualizador tentará carregar este modelo.
-    *   **Carregar Modelo:** Botão para carregar o modelo da URL fornecida.
+    *   **Carregar da URL:** Botão para carregar o modelo da URL fornecida.
 
 *   **Informações do Projeto:**
     *   **Nome do Projeto, Etapa, Descrição, Responsável:** Campos para preencher detalhes sobre o projeto BIM.

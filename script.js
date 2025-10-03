@@ -1,3 +1,8 @@
+// Inicializar Supabase
+const SUPABASE_URL = 'https://mthxubiltbeqedaaxxnb.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10aHh1YmlsdGJlcWVkYWF4eG5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0MDg0OTgsImV4cCI6MjA3NDk4NDQ5OH0.fACFA14PSfLcDjOiRExSjpIq-gXcSR_UYH8jD1H5D-4';
+const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 // Variáveis globais
 let scene, camera, renderer, controls;
 let model;
@@ -54,7 +59,41 @@ const settings = {
 init();
 animate();
 
-function init() {
+async function init() {
+    // Tentar carregar dados do projeto do Supabase se houver um project_id na URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const projectId = urlParams.get('project_id');
+
+    if (projectId) {
+        const { data, error } = await supabase
+            .from('projects')
+            .select('*')
+            .eq('id', projectId)
+            .single();
+
+        if (error) {
+            console.error('Erro ao carregar projeto do Supabase:', error);
+            alert('Erro ao carregar projeto. Verifique o ID.');
+        } else if (data) {
+            settings.projectName = data.project_name;
+            settings.projectStage = data.project_stage;
+            settings.projectDescription = data.project_description;
+            settings.projectResponsible = data.project_responsible;
+            settings.whatsappNumber = data.whatsapp_number;
+            settings.email = data.email;
+            // Se houver um modelo externo associado ao projeto, carregá-lo
+            if (data.external_model_url) {
+                settings.externalModelUrl = data.external_model_url;
+                loadModel(data.external_model_url);
+            } else {
+                loadModel(); // Carregar modelo padrão se não houver URL externa
+            }
+        }
+    } else {
+        loadModel(); // Carregar modelo padrão se não houver project_id
+    }
+
+    // Criar cena
     // Criar cena
     scene = new THREE.Scene();
     updateBackground();
@@ -255,23 +294,40 @@ function loadExternalModel() {
     }
 }
 
-function generateQRCode() {
+async function generateQRCode() {
     // Verificar se os campos obrigatórios estão preenchidos
     if (!settings.projectName || !settings.projectStage || !settings.projectDescription || !settings.projectResponsible) {
-        alert('Por favor, preencha todos os campos do projeto antes de gerar o QR Code.');
+        alert("Por favor, preencha todos os campos do projeto antes de gerar o QR Code.");
         return;
     }
-    
-    // Criar URL do visualizador com parâmetros
-    const baseUrl = window.location.href.split('?')[0];
-    const params = new URLSearchParams();
-    
-    if (settings.externalModelUrl) {
-        params.append('model', settings.externalModelUrl);
+
+    // Salvar informações no Supabase
+    const { data, error } = await supabase
+        .from("projects")
+        .insert([
+            {
+                project_name: settings.projectName,
+                project_stage: settings.projectStage,
+                project_description: settings.projectDescription,
+                project_responsible: settings.projectResponsible,
+                whatsapp_number: settings.whatsappNumber,
+                email: settings.email,
+                viewer_url: window.location.href.split("?")[0], // URL base do visualizador
+                external_model_url: settings.externalModelUrl // Salvar a URL do modelo externo
+            },
+        ])
+        .select();
+
+    if (error) {
+        console.error("Erro ao salvar projeto no Supabase:", error);
+        alert("Erro ao salvar projeto. Por favor, tente novamente.");
+        return;
     }
-    
-    const viewerUrl = baseUrl + (params.toString() ? '?' + params.toString() : '');
-    
+
+    const projectId = data[0].id;
+    const baseUrl = window.location.href.split("?")[0];
+    const viewerUrlWithId = `${baseUrl}?project_id=${projectId}`;
+
     // Criar dados do projeto para o QR Code
     const projectData = {
         projeto: settings.projectName,
@@ -280,19 +336,19 @@ function generateQRCode() {
         responsavel: settings.projectResponsible,
         whatsapp: settings.whatsappNumber,
         email: settings.email,
-        visualizador: viewerUrl,
-        data_geracao: new Date().toLocaleString('pt-BR')
+        visualizador: viewerUrlWithId,
+        data_geracao: new Date().toLocaleString("pt-BR")
     };
-    
+
     // Gerar CSV
     generateCSV(projectData);
-    
+
     // Gerar QR Code usando uma API pública
     const qrData = JSON.stringify(projectData);
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrData)}`;
-    
+
     // Mostrar QR Code em uma nova janela
-    const qrWindow = window.open('', '_blank', 'width=400,height=500');
+    const qrWindow = window.open("", "_blank", "width=400,height=500");
     qrWindow.document.write(`
         <html>
             <head>
@@ -313,9 +369,9 @@ function generateQRCode() {
                     <p><strong>Etapa:</strong> ${settings.projectStage}</p>
                     <p><strong>Descrição:</strong> ${settings.projectDescription}</p>
                     <p><strong>Responsável:</strong> ${settings.projectResponsible}</p>
-                    ${settings.whatsappNumber ? `<p><strong>WhatsApp:</strong> ${settings.whatsappNumber}</p>` : ''}
-                    ${settings.email ? `<p><strong>E-mail:</strong> ${settings.email}</p>` : ''}
-                    <p><strong>Data de Geração:</strong> ${new Date().toLocaleString('pt-BR')}</p>
+                    ${settings.whatsappNumber ? `<p><strong>WhatsApp:</strong> ${settings.whatsappNumber}</p>` : ""}
+                    ${settings.email ? `<p><strong>E-mail:</strong> ${settings.email}</p>` : ""}
+                    <p><strong>Data de Geração:</strong> ${new Date().toLocaleString("pt-BR")}</p>
                 </div>
                 <img src="${qrCodeUrl}" alt="QR Code do Projeto" />
                 <p>Escaneie o QR Code para acessar o visualizador 3D</p>
@@ -323,6 +379,7 @@ function generateQRCode() {
             </body>
         </html>
     `);
+    document.getElementById("qrcodeContainer").innerHTML = `<img src="${qrCodeUrl}" alt="QR Code do Projeto" style="max-width: 100%; height: auto; margin-top: 20px;">`;
 }
 
 function generateCSV(projectData) {
@@ -928,12 +985,32 @@ function setupUIControls() {
     }
     
     // Toggle do painel de controles
-    const toggleButton = document.getElementById('toggleControls');
-    const controlsPanel = document.getElementById('controlsPanel');
+    const toggleButton = document.getElementById("toggleControls");
+    const controlsPanel = document.getElementById("controlsPanel");
     if (toggleButton && controlsPanel) {
-        toggleButton.addEventListener('click', function() {
-            controlsPanel.classList.toggle('hidden');
-            toggleButton.textContent = controlsPanel.classList.contains('hidden') ? '⚙️' : '✕';
+        toggleButton.addEventListener("click", function() {
+            controlsPanel.classList.toggle("hidden");
+        });
+    }
+
+    // Toggle do modal de informações do projeto
+    const toggleProjectInfoButton = document.getElementById("toggleProjectInfo");
+    const projectInfoModal = document.getElementById("projectInfoModal");
+    const closeProjectInfoModalButton = document.getElementById("closeProjectInfoModal");
+
+    if (toggleProjectInfoButton && projectInfoModal && closeProjectInfoModalButton) {
+        toggleProjectInfoButton.addEventListener("click", function() {
+            projectInfoModal.style.display = "flex";
+        });
+
+        closeProjectInfoModalButton.addEventListener("click", function() {
+            projectInfoModal.style.display = "none";
+        });
+
+        window.addEventListener("click", function(event) {
+            if (event.target == projectInfoModal) {
+                projectInfoModal.style.display = "none";
+            }
         });
     }
 }

@@ -66,7 +66,21 @@ Para incorporar o visualizador no seu site Wix:
 
 ## Personalização e Controles Interativos
 
-O visualizador agora inclui um painel de controle interativo que permite ajustar diversas propriedades em tempo real, sem a necessidade de editar o código. Para acessar o painel, clique no ícone de engrenagem (⚙️) no canto superior direito da tela.
+O visualizador agora inclui um painel de controle interativo que permite ajustar diversas propriedades em tempo real, sem a necessidade de editar o código. O visualizador agora possui duas interfaces distintas para facilitar o uso:
+
+*   **Painel de Controle 3D (⚙️):** Acessível pelo ícone de engrenagem, este painel contém todas as opções de personalização da visualização 3D (fundo, iluminação, modelo, ponto de rotação, grade e carregamento de modelos).
+*   **Modal de Informações do Projeto (📋):** Acessível pelo ícone de prancheta, este modal contém todos os campos para preenchimento de informações do projeto e os botões para geração de QR Code e compartilhamento via WhatsApp.
+
+### **Integração com Supabase**
+
+Este visualizador agora está integrado com o Supabase para persistência de dados. As informações do projeto preenchidas no modal são salvas em um banco de dados Supabase. Ao gerar um QR Code, ele incluirá um `project_id` que permite ao visualizador carregar automaticamente as informações do projeto e, se configurado, o modelo 3D associado diretamente do Supabase.
+
+**Como funciona:**
+1.  Preencha os campos no **Modal de Informações do Projeto (📋)**.
+2.  Ao clicar em "📱 Gerar QR Code + CSV", os dados são salvos no Supabase e um `project_id` único é gerado.
+3.  O QR Code e o CSV gerados conterão um link para o visualizador com este `project_id` na URL (ex: `https://seusite.com/?project_id=SEU_ID_DO_PROJETO`).
+4.  Quando alguém acessa o visualizador com este `project_id` na URL, as informações do projeto são automaticamente carregadas do Supabase e exibidas no modal.
+5.  Se o projeto salvo no Supabase tiver uma `external_model_url` associada, o modelo será carregado automaticamente ao abrir o visualizador com o `project_id`.
 
 ### Controles do Painel:
 

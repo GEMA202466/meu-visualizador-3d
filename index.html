@@ -293,7 +293,8 @@
             <div>Carregando modelo 3D...</div>
         </div>
         
-        <button id="toggleControls">⚙️</button>
+        <button id="toggleProjectInfo" class="control-button" style="right: 60px;">📋</button>
+        <button id="toggleControls" class="control-button">⚙️</button>
         
         <div id="controlsPanel">
             <div class="control-group">
@@ -425,39 +426,7 @@
                 </div>
             </div>
             
-            <div class="control-group">
-                <h3>📋 Informações do Projeto</h3>
-                <div class="control-item-full">
-                    <label for="projectName">Nome do Projeto:</label>
-                    <input type="text" id="projectName" placeholder="Ex: Edifício Residencial ABC" style="width: 100%; margin-bottom: 8px; padding: 6px; border: 1px solid #555; border-radius: 4px; background: #333; color: white;">
-                </div>
-                <div class="control-item-full">
-                    <label for="projectStage">Etapa:</label>
-                    <input type="text" id="projectStage" placeholder="Ex: Projeto Executivo" style="width: 100%; margin-bottom: 8px; padding: 6px; border: 1px solid #555; border-radius: 4px; background: #333; color: white;">
-                </div>
-                <div class="control-item-full">
-                    <label for="projectDescription">Descrição:</label>
-                    <textarea id="projectDescription" placeholder="Descrição detalhada do projeto..." style="width: 100%; margin-bottom: 8px; padding: 6px; border: 1px solid #555; border-radius: 4px; background: #333; color: white; height: 60px; resize: vertical;"></textarea>
-                </div>
-                <div class="control-item-full">
-                    <label for="projectResponsible">Responsável:</label>
-                    <input type="text" id="projectResponsible" placeholder="Ex: Eng. João Silva" style="width: 100%; margin-bottom: 8px; padding: 6px; border: 1px solid #555; border-radius: 4px; background: #333; color: white;">
-                </div>
-                <div class="control-item-full">
-                    <label for="whatsappNumber">WhatsApp:</label>
-                    <input type="tel" id="whatsappNumber" placeholder="Ex: +5511999999999" style="width: 100%; margin-bottom: 8px; padding: 6px; border: 1px solid #555; border-radius: 4px; background: #333; color: white;">
-                </div>
-                <div class="control-item-full">
-                    <label for="email">E-mail:</label>
-                    <input type="email" id="email" placeholder="Ex: contato@empresa.com" style="width: 100%; margin-bottom: 8px; padding: 6px; border: 1px solid #555; border-radius: 4px; background: #333; color: white;">
-                </div>
-            </div>
-            
-            <div class="control-group">
-                <h3>📱 Compartilhamento</h3>
-                <button id="generateQRCode" style="width: 100%; padding: 10px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; margin-bottom: 8px; font-weight: bold;">📱 Gerar QR Code + CSV</button>
-                <button id="sendWhatsApp" style="width: 100%; padding: 10px; background: #25d366; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">💬 Enviar WhatsApp</button>
-            </div>
+
         </div>
         
         <div id="basicControls">
@@ -475,6 +444,79 @@
             Compatível com Wix via iframe
         </div>
     </div>
+
+    <!-- Modal de Informações do Projeto e QR Code -->
+    <div id="projectInfoModal" style="
+        display: none; /* Escondido por padrão */
+        position: fixed;
+        z-index: 1001;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0,0,0,0.7);
+        backdrop-filter: blur(5px);
+        justify-content: center;
+        align-items: center;
+    ">
+        <div style="
+            background-color: #222;
+            margin: auto;
+            padding: 30px;
+            border: 1px solid #444;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            color: white;
+            position: relative;
+        ">
+            <span id="closeProjectInfoModal" style="
+                color: #aaa;
+                float: right;
+                font-size: 28px;
+                font-weight: bold;
+                cursor: pointer;
+            ">&times;</span>
+            <h2>📋 Informações do Projeto</h2>
+            <p style="font-size: 12px; color: #bbb; margin-bottom: 20px;">Preencha os detalhes do seu projeto para gerar QR Codes e compartilhar.</p>
+
+            <div class="control-item-full" style="margin-bottom: 15px;">
+                <label for="projectName" style="display: block; margin-bottom: 5px; color: #ccc;">Nome do Projeto:</label>
+                <input type="text" id="projectName" placeholder="Ex: Edifício Residencial ABC" style="width: 100%; padding: 8px; border: 1px solid #555; border-radius: 4px; background: #333; color: white;">
+            </div>
+            <div class="control-item-full" style="margin-bottom: 15px;">
+                <label for="projectStage" style="display: block; margin-bottom: 5px; color: #ccc;">Etapa:</label>
+                <input type="text" id="projectStage" placeholder="Ex: Projeto Executivo" style="width: 100%; padding: 8px; border: 1px solid #555; border-radius: 4px; background: #333; color: white;">
+            </div>
+            <div class="control-item-full" style="margin-bottom: 15px;">
+                <label for="projectDescription" style="display: block; margin-bottom: 5px; color: #ccc;">Descrição:</label>
+                <textarea id="projectDescription" placeholder="Descrição detalhada do projeto..." style="width: 100%; padding: 8px; border: 1px solid #555; border-radius: 4px; background: #333; color: white; height: 80px; resize: vertical;"></textarea>
+            </div>
+            <div class="control-item-full" style="margin-bottom: 15px;">
+                <label for="projectResponsible" style="display: block; margin-bottom: 5px; color: #ccc;">Responsável:</label>
+                <input type="text" id="projectResponsible" placeholder="Ex: Eng. João Silva" style="width: 100%; padding: 8px; border: 1px solid #555; border-radius: 4px; background: #333; color: white;">
+            </div>
+            <div class="control-item-full" style="margin-bottom: 15px;">
+                <label for="whatsappNumber" style="display: block; margin-bottom: 5px; color: #ccc;">WhatsApp:</label>
+                <input type="tel" id="whatsappNumber" placeholder="Ex: +5511999999999" style="width: 100%; padding: 8px; border: 1px solid #555; border-radius: 4px; background: #333; color: white;">
+            </div>
+            <div class="control-item-full" style="margin-bottom: 20px;">
+                <label for="email" style="display: block; margin-bottom: 5px; color: #ccc;">E-mail:</label>
+                <input type="email" id="email" placeholder="Ex: contato@empresa.com" style="width: 100%; padding: 8px; border: 1px solid #555; border-radius: 4px; background: #333; color: white;">
+            </div>
+
+            <h3 style="margin-top: 20px; margin-bottom: 15px; color: #667eea;">📱 Compartilhamento</h3>
+            <button id="generateQRCode" style="width: 100%; padding: 12px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; margin-bottom: 10px; font-weight: bold; font-size: 16px;">📱 Gerar QR Code + CSV</button>
+            <button id="sendWhatsApp" style="width: 100%; padding: 12px; background: #25d366; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 16px;">💬 Enviar WhatsApp</button>
+            
+            <div id="qrcodeContainer" style="text-align: center; margin-top: 20px;"></div>
+        </div>
+    </div>
+
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <!-- Three.js CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>

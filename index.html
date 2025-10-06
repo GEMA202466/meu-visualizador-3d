@@ -85,13 +85,511 @@
             border-radius: 15px;
             color: white;
             font-size: 14px;
-            max-width: 300px;
+            max-width: 400px;
             max-height: 80vh;
             overflow-y: auto;
             backdrop-filter: blur(15px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
             transition: all 0.3s ease;
+            /* Propriedades para arrastar e redimensionar */
+            resize: both;
+            overflow: auto;
+            min-width: 280px;
+            min-height: 200px;
+            user-select: none;
+        }
+        
+        #controlsPanel.dragging {
+            cursor: grabbing;
+            transition: none;
+        }
+        
+        .panel-header {
+            position: sticky;
+            top: -25px;
+            background: rgba(0, 0, 0, 0.95);
+            margin: -25px -25px 15px -25px;
+            padding: 15px 25px;
+            border-radius: 15px 15px 0 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: grab;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(15px);
+        }
+        
+        .panel-header:active {
+            cursor: grabbing;
+        }
+        
+        .panel-title {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 16px;
+            margin: 0;
+        }
+        
+        .panel-controls {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .panel-control-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .panel-control-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+        
+        .resize-handle {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(-45deg, transparent 0%, transparent 40%, rgba(255,255,255,0.3) 50%, transparent 60%, transparent 100%);
+            cursor: nw-resize;
+            border-radius: 0 0 15px 0;
+        }
+        
+        /* PDF Viewer Styles */
+        #pdfViewer {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 400px;
+            height: 600px;
+            background: rgba(0, 0, 0, 0.95);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            z-index: 998;
+            display: none;
+            flex-direction: column;
+            min-width: 300px;
+            min-height: 400px;
+            resize: both;
+            overflow: hidden;
+            user-select: none;
+        }
+        
+        .pdf-header {
+            background: rgba(0, 0, 0, 0.95);
+            padding: 15px 20px;
+            border-radius: 15px 15px 0 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: grab;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(15px);
+        }
+        
+        .pdf-header:active {
+            cursor: grabbing;
+        }
+        
+        .pdf-title {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 16px;
+            margin: 0;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .pdf-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .pdf-control-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .pdf-control-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+        
+        .pdf-control-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .pdf-page-info {
+            color: #ccc;
+            font-size: 12px;
+            margin: 0 10px;
+            white-space: nowrap;
+        }
+        
+        .pdf-content {
+            flex: 1;
+            overflow: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .pdf-canvas {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .pdf-loading {
+            color: #ccc;
+            text-align: center;
+            padding: 40px;
+            font-size: 14px;
+        }
+        
+        .pdf-error {
+            color: #ff6b6b;
+            text-align: center;
+            padding: 40px;
+            font-size: 14px;
+        }
+        
+        .pdf-upload-area {
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            color: #ccc;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 20px;
+        }
+        
+        .pdf-upload-area:hover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .pdf-upload-area.dragover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.2);
+        }
+        
+        #pdfFileInput {
+            display: none;
+        }
+        
+        /* File Manager Styles */
+        #fileManager {
+            position: fixed;
+            top: 20px;
+            left: 450px;
+            width: 350px;
+            height: 500px;
+            background: rgba(0, 0, 0, 0.95);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            z-index: 997;
+            display: none;
+            flex-direction: column;
+            min-width: 300px;
+            min-height: 400px;
+            resize: both;
+            overflow: hidden;
+            user-select: none;
+        }
+        
+        .file-manager-header {
+            background: rgba(0, 0, 0, 0.95);
+            padding: 15px 20px;
+            border-radius: 15px 15px 0 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: grab;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(15px);
+        }
+        
+        .file-manager-header:active {
+            cursor: grabbing;
+        }
+        
+        .file-manager-title {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 16px;
+            margin: 0;
+            flex: 1;
+        }
+        
+        .file-manager-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .file-manager-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .file-manager-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+        
+        .file-manager-content {
+            flex: 1;
+            overflow: auto;
+            padding: 15px;
+        }
+        
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            font-size: 12px;
+            color: #ccc;
+            flex-wrap: wrap;
+        }
+        
+        .breadcrumb-item {
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+        
+        .breadcrumb-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+        
+        .breadcrumb-separator {
+            margin: 0 5px;
+            color: #666;
+        }
+        
+        .file-upload-area {
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            color: #ccc;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
+            font-size: 12px;
+        }
+        
+        .file-upload-area:hover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .file-upload-area.dragover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.2);
+        }
+        
+        .file-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 2px;
+            position: relative;
+        }
+        
+        .file-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .file-item.selected {
+            background: rgba(102, 126, 234, 0.3);
+        }
+        
+        .file-icon {
+            font-size: 16px;
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+        
+        .file-name {
+            flex: 1;
+            font-size: 13px;
+            color: white;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .file-size {
+            font-size: 11px;
+            color: #999;
+            margin-left: 10px;
+        }
+        
+        .file-actions {
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        
+        .file-item:hover .file-actions {
+            opacity: 1;
+        }
+        
+        .file-action-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .file-action-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .file-action-btn.delete:hover {
+            background: rgba(255, 107, 107, 0.3);
+        }
+        
+        .folder-actions {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .folder-btn {
+            background: rgba(102, 126, 234, 0.2);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+        
+        .folder-btn:hover {
+            background: rgba(102, 126, 234, 0.3);
+            border-color: rgba(102, 126, 234, 0.5);
+        }
+        
+        .loading-spinner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            color: #ccc;
+        }
+        
+        .spinner-small {
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 2px solid #667eea;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        #fileManagerInput {
+            display: none;
+        }
+        
+        .context-menu {
+            position: fixed;
+            background: rgba(0, 0, 0, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 8px 0;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            display: none;
+        }
+        
+        .context-menu-item {
+            padding: 8px 16px;
+            color: white;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.2s ease;
+        }
+        
+        .context-menu-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .context-menu-separator {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+            margin: 4px 0;
         }
         
         #controlsPanel.hidden {
@@ -293,10 +791,20 @@
             <div>Carregando modelo 3D...</div>
         </div>
         
+        <button id="toggleFileManager" class="control-button" style="right: 180px;">📁</button>
+        <button id="togglePdfViewer" class="control-button" style="right: 120px;">📄</button>
         <button id="toggleProjectInfo" class="control-button" style="right: 60px;">📋</button>
         <button id="toggleControls" class="control-button">⚙️</button>
         
         <div id="controlsPanel">
+            <div class="panel-header">
+                <h3 class="panel-title">⚙️ Controles</h3>
+                <div class="panel-controls">
+                    <button class="panel-control-btn" id="minimizePanel" title="Minimizar">−</button>
+                    <button class="panel-control-btn" id="resetPanelPosition" title="Resetar Posição">⌂</button>
+                </div>
+            </div>
+            <div class="resize-handle"></div>
             <div class="control-group">
                 <h3>🎨 Fundo</h3>
                 <div class="control-item-full">
@@ -365,6 +873,14 @@
             <div class="control-group">
                 <h3>🎯 Ponto de Rotação</h3>
                 <div class="control-item">
+                    <label>Mostrar indicador:</label>
+                    <input type="checkbox" id="showRotationPoint" checked>
+                </div>
+                <div class="control-item">
+                    <label>Tamanho do indicador:</label>
+                    <input type="range" id="rotationPointSize" min="0.1" max="1" step="0.1" value="0.2">
+                </div>
+                <div class="control-item">
                     <label>X:</label>
                     <input type="range" id="rotationPointX" min="-10" max="10" step="0.1" value="0">
                 </div>
@@ -417,10 +933,11 @@
             <div class="control-group">
                 <h3>📁 Modelo Externo</h3>
                 <div class="control-item-full">
-                    <label for="fileUpload">Upload de arquivo GLB:</label>
-                    <input type="file" id="fileUpload" accept=".glb,.gltf" style="width: 100%; margin-bottom: 8px; padding: 6px; border: 1px solid #555; border-radius: 4px; background: #333; color: white;">
+                    <label for="fileUpload">Upload de arquivo 3D:</label>
+                    <input type="file" id="fileUpload" accept=".glb,.gltf,.obj,.fbx,.stl,.dae,.3ds,.ply" style="width: 100%; margin-bottom: 8px; padding: 6px; border: 1px solid #555; border-radius: 4px; background: #333; color: white;">
+                    <div style="font-size: 11px; color: #888; margin-bottom: 8px;">Suporta: GLB, GLTF, OBJ, FBX, STL, DAE, 3DS, PLY</div>
                     <div style="text-align: center; margin: 10px 0; color: #888; font-size: 12px;">OU</div>
-                    <label for="externalModelUrl">URL do modelo GLB:</label>
+                    <label for="externalModelUrl">URL do modelo:</label>
                     <input type="url" id="externalModelUrl" placeholder="https://exemplo.com/modelo.glb" style="width: 100%; margin-bottom: 8px;">
                     <button id="loadExternalModel" style="width: 100%; padding: 8px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">Carregar da URL</button>
                 </div>
@@ -443,6 +960,72 @@
             Modelo interativo com controles personalizáveis<br>
             Compatível com Wix via iframe
         </div>
+        
+        <!-- PDF Viewer -->
+        <div id="pdfViewer">
+            <div class="pdf-header">
+                <h3 class="pdf-title">📄 Visualizador PDF</h3>
+                <div class="pdf-controls">
+                    <button class="pdf-control-btn" id="pdfPrevPage" title="Página Anterior">‹</button>
+                    <span class="pdf-page-info" id="pdfPageInfo">-/-</span>
+                    <button class="pdf-control-btn" id="pdfNextPage" title="Próxima Página">›</button>
+                    <button class="pdf-control-btn" id="pdfZoomOut" title="Diminuir Zoom">−</button>
+                    <button class="pdf-control-btn" id="pdfZoomIn" title="Aumentar Zoom">+</button>
+                    <button class="pdf-control-btn" id="closePdfViewer" title="Fechar">×</button>
+                </div>
+            </div>
+            <div class="pdf-content" id="pdfContent">
+                <div class="pdf-upload-area" id="pdfUploadArea">
+                    <div style="font-size: 48px; margin-bottom: 15px;">📄</div>
+                    <div style="font-size: 16px; margin-bottom: 10px;">Arraste um arquivo PDF aqui</div>
+                    <div style="font-size: 14px; opacity: 0.7;">ou clique para selecionar</div>
+                    <input type="file" id="pdfFileInput" accept=".pdf">
+                </div>
+            </div>
+            <div class="resize-handle"></div>
+        </div>
+        
+        <!-- File Manager -->
+        <div id="fileManager">
+            <div class="file-manager-header">
+                <h3 class="file-manager-title">📁 Gerenciador de Arquivos</h3>
+                <div class="file-manager-controls">
+                    <button class="file-manager-btn" id="refreshFiles" title="Atualizar">↻</button>
+                    <button class="file-manager-btn" id="closeFileManager" title="Fechar">×</button>
+                </div>
+            </div>
+            <div class="file-manager-content">
+                <div class="breadcrumb" id="breadcrumb">
+                    <span class="breadcrumb-item" data-path="">📁 Raiz</span>
+                </div>
+                
+                <div class="folder-actions">
+                    <button class="folder-btn" id="createFolder">+ Nova Pasta</button>
+                    <button class="folder-btn" id="uploadFile">📤 Upload</button>
+                </div>
+                
+                <div class="file-upload-area" id="fileUploadArea">
+                    <div>📁 Arraste arquivos aqui ou clique para selecionar</div>
+                    <input type="file" id="fileManagerInput" multiple accept=".glb,.gltf,.pdf,.jpg,.jpeg,.png,.dwg,.ifc,.rvt">
+                </div>
+                
+                <ul class="file-list" id="fileList">
+                    <!-- Arquivos serão carregados dinamicamente -->
+                </ul>
+            </div>
+            <div class="resize-handle"></div>
+        </div>
+        
+        <!-- Context Menu -->
+        <div class="context-menu" id="contextMenu">
+            <div class="context-menu-item" data-action="open">Abrir</div>
+            <div class="context-menu-item" data-action="download">Download</div>
+            <div class="context-menu-separator"></div>
+            <div class="context-menu-item" data-action="rename">Renomear</div>
+            <div class="context-menu-item" data-action="move">Mover</div>
+            <div class="context-menu-separator"></div>
+            <div class="context-menu-item" data-action="delete">Excluir</div>
+        </div>
     </div>
 
     <!-- Modal de Informações do Projeto e QR Code -->
@@ -460,7 +1043,7 @@
         justify-content: center;
         align-items: center;
     ">
-        <div style="
+        <div id="projectInfoModalContent" style="
             background-color: #222;
             margin: auto;
             padding: 30px;
@@ -471,6 +1054,12 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.5);
             color: white;
             position: relative;
+            /* Propriedades para arrastar e redimensionar */
+            resize: both;
+            overflow: auto;
+            cursor: grab;
+            min-width: 300px;
+            min-height: 200px;
         ">
             <span id="closeProjectInfoModal" style="
                 color: #aaa;
@@ -515,12 +1104,21 @@
         </div>
     </div>
 
+    <!-- PDF.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    
     <!-- Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <!-- Three.js CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/ColladaLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/3DSLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/PLYLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     
     <script src="script.js"></script>

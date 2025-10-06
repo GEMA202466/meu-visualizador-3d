@@ -8,6 +8,7 @@ let scene, camera, renderer, controls;
 let model;
 let ambientLight, directionalLight, fillLight;
 let gridHelper;
+let rotationPointIndicator;
 let autoRotate = false;
 
 // Configurações padrão
@@ -38,6 +39,8 @@ const settings = {
     rotationPointX: 0,
     rotationPointY: 0,
     rotationPointZ: 0,
+    showRotationPoint: true,
+    rotationPointSize: 0.2,
     
     // Cores do modelo
     useOriginalColors: true,
@@ -136,6 +139,9 @@ async function init() {
     
     // Adicionar plano de grade
     setupGrid();
+    
+    // Adicionar indicador do ponto de rotação
+    setupRotationPointIndicator();
     
     // Carregar modelo
     loadModel();
@@ -240,6 +246,78 @@ function updateGridTransform() {
     }
 }
 
+function setupRotationPointIndicator() {
+    // Criar grupo para o indicador do ponto de rotação
+    rotationPointIndicator = new THREE.Group();
+    
+    // Esfera central
+    const sphereGeometry = new THREE.SphereGeometry(settings.rotationPointSize, 16, 16);
+    const sphereMaterial = new THREE.MeshBasicMaterial({ 
+        color: 0xff4444, 
+        transparent: true, 
+        opacity: 0.8
+    });
+    const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    rotationPointIndicator.add(sphere);
+    
+    // Anel externo animado
+    const ringGeometry = new THREE.RingGeometry(settings.rotationPointSize * 1.5, settings.rotationPointSize * 2, 32);
+    const ringMaterial = new THREE.MeshBasicMaterial({ 
+        color: 0xff6666, 
+        transparent: true, 
+        opacity: 0.4,
+        side: THREE.DoubleSide
+    });
+    const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+    ring.rotation.x = Math.PI / 2; // Rotacionar para ficar horizontal
+    rotationPointIndicator.add(ring);
+    
+    // Eixos de coordenadas
+    const axisLength = settings.rotationPointSize * 3;
+    
+    // Eixo X (vermelho)
+    const xAxisGeometry = new THREE.CylinderGeometry(0.02, 0.02, axisLength, 8);
+    const xAxisMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.7 });
+    const xAxis = new THREE.Mesh(xAxisGeometry, xAxisMaterial);
+    xAxis.rotation.z = Math.PI / 2;
+    rotationPointIndicator.add(xAxis);
+    
+    // Eixo Y (verde)
+    const yAxisGeometry = new THREE.CylinderGeometry(0.02, 0.02, axisLength, 8);
+    const yAxisMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.7 });
+    const yAxis = new THREE.Mesh(yAxisGeometry, yAxisMaterial);
+    rotationPointIndicator.add(yAxis);
+    
+    // Eixo Z (azul)
+    const zAxisGeometry = new THREE.CylinderGeometry(0.02, 0.02, axisLength, 8);
+    const zAxisMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff, transparent: true, opacity: 0.7 });
+    const zAxis = new THREE.Mesh(zAxisGeometry, zAxisMaterial);
+    zAxis.rotation.x = Math.PI / 2;
+    rotationPointIndicator.add(zAxis);
+    
+    // Posicionar o grupo
+    rotationPointIndicator.position.set(
+        settings.rotationPointX,
+        settings.rotationPointY,
+        settings.rotationPointZ
+    );
+    
+    // Adicionar à cena
+    scene.add(rotationPointIndicator);
+    
+    // Controlar visibilidade inicial
+    rotationPointIndicator.visible = settings.showRotationPoint;
+    
+    // Armazenar referências para animação
+    rotationPointIndicator.userData = {
+        sphere: sphere,
+        ring: ring,
+        xAxis: xAxis,
+        yAxis: yAxis,
+        zAxis: zAxis
+    };
+}
+
 function updateRotationPoint() {
     if (controls) {
         // Atualizar o ponto alvo dos controles de órbita
@@ -249,6 +327,37 @@ function updateRotationPoint() {
             settings.rotationPointZ
         );
         controls.update();
+    }
+    
+    // Atualizar a posição do indicador visual
+    if (rotationPointIndicator) {
+        rotationPointIndicator.position.set(
+            settings.rotationPointX,
+            settings.rotationPointY,
+            settings.rotationPointZ
+        );
+        rotationPointIndicator.visible = settings.showRotationPoint;
+        
+        // Atualizar o tamanho do indicador
+        const scale = settings.rotationPointSize / 0.2;
+        rotationPointIndicator.scale.setScalar(scale);
+        
+        // Atualizar componentes individuais se existirem
+        if (rotationPointIndicator.userData) {
+            const { sphere, ring, xAxis, yAxis, zAxis } = rotationPointIndicator.userData;
+            
+            // Atualizar tamanhos dos eixos baseado no tamanho do ponto
+            const axisLength = settings.rotationPointSize * 3;
+            if (xAxis) {
+                xAxis.scale.y = axisLength / (settings.rotationPointSize * 3);
+            }
+            if (yAxis) {
+                yAxis.scale.y = axisLength / (settings.rotationPointSize * 3);
+            }
+            if (zAxis) {
+                zAxis.scale.y = axisLength / (settings.rotationPointSize * 3);
+            }
+        }
     }
 }
 
@@ -564,22 +673,86 @@ function updateGridColor() {
 }
 
 function loadModel(modelUrl = null) {
-    const loader = new THREE.GLTFLoader();
-    
     // Usar URL externa se fornecida, senão usar modelo padrão
     const url = modelUrl || settings.externalModelUrl || 'modelo.glb';
     
+    // Determinar tipo de arquivo pela extensão
+    const extension = url.split('.').pop().toLowerCase();
+    let loader;
+    
     // Mostrar loading
     document.getElementById('loading').style.display = 'block';
-    document.getElementById('loading').textContent = 'Carregando modelo...';
+    document.getElementById('loading').textContent = `Carregando modelo ${extension.toUpperCase()}...`;
+    
+    // Selecionar loader apropriado
+    switch(extension) {
+        case 'glb':
+        case 'gltf':
+            loader = new THREE.GLTFLoader();
+            break;
+        case 'obj':
+            loader = new THREE.OBJLoader();
+            break;
+        case 'fbx':
+            loader = new THREE.FBXLoader();
+            break;
+        case 'stl':
+            loader = new THREE.STLLoader();
+            break;
+        case 'dae':
+            loader = new THREE.ColladaLoader();
+            break;
+        case '3ds':
+            loader = new THREE.TDSLoader();
+            break;
+        case 'ply':
+            loader = new THREE.PLYLoader();
+            break;
+        default:
+            console.error('Formato de arquivo não suportado:', extension);
+            document.getElementById('loading').innerHTML = 
+                '<div style="color: #ff6b6b;">❌ Formato não suportado</div>' +
+                `<div style="font-size: 12px; margin-top: 10px;">Formato ${extension.toUpperCase()} não é suportado</div>`;
+            return;
+    }
     
     loader.load(
-        url, // Arquivo do modelo
-        function(gltf) {
-            model = gltf.scene;
+        url,
+        function(loadedData) {
+            // Remover modelo anterior se existir
+            if (model) {
+                scene.remove(model);
+            }
+            
+            // Processar dados carregados baseado no tipo
+            if (extension === 'glb' || extension === 'gltf') {
+                model = loadedData.scene;
+            } else if (extension === 'dae') {
+                model = loadedData.scene;
+            } else if (extension === 'stl' || extension === 'ply') {
+                // Para STL e PLY, criar mesh com geometria carregada
+                const geometry = loadedData;
+                geometry.computeVertexNormals(); // Calcular normais se necessário
+                const material = new THREE.MeshLambertMaterial({ 
+                    color: 0xffffff,
+                    transparent: true,
+                    opacity: settings.modelOpacity
+                });
+                model = new THREE.Mesh(geometry, material);
+            } else {
+                // Para OBJ, FBX, 3DS
+                model = loadedData;
+            }
+            
+            // Garantir que model é um Object3D
+            if (!model.isObject3D) {
+                const group = new THREE.Group();
+                group.add(model);
+                model = group;
+            }
+            
             window.model = model; // Tornar o modelo acessível globalmente para depuração
-            console.log("GLTF carregado com sucesso:", gltf);
-            console.log("Cena do modelo:", model);
+            console.log(`${extension.toUpperCase()} carregado com sucesso:`, model);
             
             // Configurar sombras, transparência e cores
             model.traverse(function(child) {
@@ -589,13 +762,24 @@ function loadModel(modelUrl = null) {
                     
                     // Armazenar material original para poder restaurar
                     if (child.material && !child.userData.originalMaterial) {
-                        child.userData.originalMaterial = child.material.clone();
+                        if (Array.isArray(child.material)) {
+                            child.userData.originalMaterial = child.material.map(mat => mat.clone());
+                        } else {
+                            child.userData.originalMaterial = child.material.clone();
+                        }
                     }
                     
                     // Configurar material para transparência
                     if (child.material) {
-                        child.material.transparent = true;
-                        child.material.opacity = settings.modelOpacity;
+                        if (Array.isArray(child.material)) {
+                            child.material.forEach(mat => {
+                                mat.transparent = true;
+                                mat.opacity = settings.modelOpacity;
+                            });
+                        } else {
+                            child.material.transparent = true;
+                            child.material.opacity = settings.modelOpacity;
+                        }
                     }
                 }
             });
@@ -613,32 +797,35 @@ function loadModel(modelUrl = null) {
             
             // Escalar para caber na tela
             const maxDim = Math.max(size.x, size.y, size.z);
-            // Ajustar a escala para um valor mais adequado para modelos BIM, que podem ser grandes
-            const scale = 10 / maxDim; // Aumentado de 3 para 10 para melhor visibilidade
-            model.scale.setScalar(scale);
+            if (maxDim > 0) {
+                const scale = 10 / maxDim; // Ajustar escala para modelos BIM
+                model.scale.setScalar(scale);
+            }
             
             scene.add(model);
             
             // Ajustar câmera
-            const distance = maxDim * scale * 2; // Distância base
-            // Ajustar a posição da câmera para garantir que o modelo esteja visível
-            camera.position.set(distance * 1.5, distance * 1.5, distance * 1.5); // Aumentar a distância inicial
+            const distance = maxDim > 0 ? maxDim * 2 : 10;
+            camera.position.set(distance * 1.5, distance * 1.5, distance * 1.5);
             controls.target.set(0, 0, 0);
             controls.update();
             
             // Esconder loading
             document.getElementById('loading').style.display = 'none';
             
-            console.log('Modelo carregado com sucesso!');
+            console.log(`Modelo ${extension.toUpperCase()} carregado com sucesso!`);
         },
         function(progress) {
-            console.log('Progresso:', (progress.loaded / progress.total * 100) + '%');
+            if (progress.total > 0) {
+                const percent = (progress.loaded / progress.total * 100).toFixed(1);
+                console.log(`Progresso ${extension.toUpperCase()}:`, percent + '%');
+            }
         },
         function(error) {
-            console.error('Erro ao carregar modelo:', error);
+            console.error(`Erro ao carregar modelo ${extension.toUpperCase()}:`, error);
             document.getElementById('loading').innerHTML = 
-                '<div style="color: #ff6b6b;">❌ Erro ao carregar modelo</div>' +
-                '<div style="font-size: 12px; margin-top: 10px;">Verifique se a URL está correta e acessível</div>';
+                `<div style="color: #ff6b6b;">❌ Erro ao carregar ${extension.toUpperCase()}</div>` +
+                '<div style="font-size: 12px; margin-top: 10px;">Verifique se o arquivo está correto e acessível</div>';
             
             // Se falhou ao carregar modelo externo, tentar carregar o padrão
             if (modelUrl && modelUrl !== 'modelo.glb') {
@@ -808,8 +995,29 @@ function setupUIControls() {
         });
     }
     
-    // Ponto de rotação X
+    // Controles do ponto de rotação
+    const showRotationPointCheckbox = document.getElementById('showRotationPoint');
+    const rotationPointSizeSlider = document.getElementById('rotationPointSize');
     const rotationPointXSlider = document.getElementById('rotationPointX');
+    const rotationPointYSlider = document.getElementById('rotationPointY');
+    const rotationPointZSlider = document.getElementById('rotationPointZ');
+
+    if (showRotationPointCheckbox) {
+        showRotationPointCheckbox.checked = settings.showRotationPoint;
+        showRotationPointCheckbox.addEventListener('change', function(e) {
+            settings.showRotationPoint = e.target.checked;
+            updateRotationPoint();
+        });
+    }
+
+    if (rotationPointSizeSlider) {
+        rotationPointSizeSlider.value = settings.rotationPointSize;
+        rotationPointSizeSlider.addEventListener('input', function(e) {
+            settings.rotationPointSize = parseFloat(e.target.value);
+            updateRotationPoint();
+        });
+    }
+
     if (rotationPointXSlider) {
         rotationPointXSlider.value = settings.rotationPointX;
         rotationPointXSlider.addEventListener('input', function(e) {
@@ -817,9 +1025,7 @@ function setupUIControls() {
             updateRotationPoint();
         });
     }
-    
-    // Ponto de rotação Y
-    const rotationPointYSlider = document.getElementById('rotationPointY');
+
     if (rotationPointYSlider) {
         rotationPointYSlider.value = settings.rotationPointY;
         rotationPointYSlider.addEventListener('input', function(e) {
@@ -827,17 +1033,14 @@ function setupUIControls() {
             updateRotationPoint();
         });
     }
-    
-    // Ponto de rotação Z
-    const rotationPointZSlider = document.getElementById('rotationPointZ');
+
     if (rotationPointZSlider) {
         rotationPointZSlider.value = settings.rotationPointZ;
         rotationPointZSlider.addEventListener('input', function(e) {
             settings.rotationPointZ = parseFloat(e.target.value);
             updateRotationPoint();
         });
-    }
-    
+    }    
     // Posição da grade X
     const gridPositionXSlider = document.getElementById('gridPositionX');
     if (gridPositionXSlider) {
@@ -984,6 +1187,47 @@ function setupUIControls() {
         sendWhatsAppButton.addEventListener('click', sendWhatsAppMessage);
     }
     
+    // Função para tornar um elemento arrastável
+    function makeDraggable(element, handle = element) {
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+
+        if (handle) {
+            handle.onmousedown = dragMouseDown;
+        } else {
+            element.onmousedown = dragMouseDown;
+        }
+
+        function dragMouseDown(e) {
+            e = e || window.event;
+            e.preventDefault();
+            // get the mouse cursor position at startup:
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            document.onmouseup = closeDragElement;
+            // call a function whenever the cursor moves:
+            document.onmousemove = elementDrag;
+        }
+
+        function elementDrag(e) {
+            e = e || window.event;
+            e.preventDefault();
+            // calculate the new cursor position:
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            // set the element's new position:
+            element.style.top = (element.offsetTop - pos2) + "px";
+            element.style.left = (element.offsetLeft - pos1) + "px";
+        }
+
+        function closeDragElement() {
+            // stop moving when mouse button is released:
+            document.onmouseup = null;
+            document.onmousemove = null;
+        }
+    }
+
     // Toggle do painel de controles
     const toggleButton = document.getElementById("toggleControls");
     const controlsPanel = document.getElementById("controlsPanel");
@@ -991,14 +1235,16 @@ function setupUIControls() {
         toggleButton.addEventListener("click", function() {
             controlsPanel.classList.toggle("hidden");
         });
+        makeDraggable(controlsPanel); // Tornar o painel arrastável
     }
 
     // Toggle do modal de informações do projeto
     const toggleProjectInfoButton = document.getElementById("toggleProjectInfo");
     const projectInfoModal = document.getElementById("projectInfoModal");
     const closeProjectInfoModalButton = document.getElementById("closeProjectInfoModal");
+    const projectInfoModalContent = document.getElementById("projectInfoModalContent");
 
-    if (toggleProjectInfoButton && projectInfoModal && closeProjectInfoModalButton) {
+    if (toggleProjectInfoButton && projectInfoModal && closeProjectInfoModalButton && projectInfoModalContent) {
         toggleProjectInfoButton.addEventListener("click", function() {
             projectInfoModal.style.display = "flex";
         });
@@ -1012,6 +1258,7 @@ function setupUIControls() {
                 projectInfoModal.style.display = "none";
             }
         });
+        makeDraggable(projectInfoModalContent); // Tornar o conteúdo do modal arrastável
     }
 }
 
@@ -1026,6 +1273,20 @@ function animate() {
     
     // Atualizar controles
     controls.update();
+    
+    // Animar ponto de rotação
+    if (rotationPointIndicator && rotationPointIndicator.visible && rotationPointIndicator.userData) {
+        const time = Date.now() * 0.001;
+        const { ring } = rotationPointIndicator.userData;
+        
+        if (ring) {
+            // Rotação suave do anel
+            ring.rotation.z = time * 0.5;
+            
+            // Pulsação suave da opacidade
+            ring.material.opacity = 0.3 + Math.sin(time * 2) * 0.1;
+        }
+    }
     
     // Renderizar cena
     renderer.render(scene, camera);
@@ -1047,3 +1308,1031 @@ function resetView() {
 
 // Adicionar evento de duplo clique para resetar visualização
 window.addEventListener('dblclick', resetView);
+
+
+// Funcionalidade de painel móvel e redimensionável
+function initDraggablePanel() {
+    const panel = document.getElementById('controlsPanel');
+    const header = panel.querySelector('.panel-header');
+    const minimizeBtn = document.getElementById('minimizePanel');
+    const resetBtn = document.getElementById('resetPanelPosition');
+    
+    let isDragging = false;
+    let currentX;
+    let currentY;
+    let initialX;
+    let initialY;
+    let xOffset = 0;
+    let yOffset = 0;
+    
+    // Estado minimizado
+    let isMinimized = false;
+    let originalHeight;
+    
+    // Função para iniciar o arraste
+    function dragStart(e) {
+        if (e.target.closest('.panel-control-btn')) return; // Não arrastar se clicar nos botões
+        
+        if (e.type === "touchstart") {
+            initialX = e.touches[0].clientX - xOffset;
+            initialY = e.touches[0].clientY - yOffset;
+        } else {
+            initialX = e.clientX - xOffset;
+            initialY = e.clientY - yOffset;
+        }
+
+        if (e.target === header || header.contains(e.target)) {
+            isDragging = true;
+            panel.classList.add('dragging');
+        }
+    }
+
+    // Função para arrastar
+    function dragEnd(e) {
+        initialX = currentX;
+        initialY = currentY;
+
+        isDragging = false;
+        panel.classList.remove('dragging');
+    }
+
+    // Função para mover
+    function drag(e) {
+        if (isDragging) {
+            e.preventDefault();
+            
+            if (e.type === "touchmove") {
+                currentX = e.touches[0].clientX - initialX;
+                currentY = e.touches[0].clientY - initialY;
+            } else {
+                currentX = e.clientX - initialX;
+                currentY = e.clientY - initialY;
+            }
+
+            xOffset = currentX;
+            yOffset = currentY;
+
+            // Limitar movimento dentro da viewport
+            const rect = panel.getBoundingClientRect();
+            const maxX = window.innerWidth - rect.width;
+            const maxY = window.innerHeight - rect.height;
+            
+            currentX = Math.max(0, Math.min(currentX, maxX));
+            currentY = Math.max(0, Math.min(currentY, maxY));
+            
+            panel.style.transform = `translate(${currentX}px, ${currentY}px)`;
+            panel.style.position = 'fixed';
+            panel.style.top = '0';
+            panel.style.right = 'auto';
+            panel.style.left = '0';
+        }
+    }
+
+    // Função para minimizar/maximizar
+    function toggleMinimize() {
+        if (!isMinimized) {
+            originalHeight = panel.style.height || panel.offsetHeight + 'px';
+            panel.style.height = '60px';
+            panel.style.overflow = 'hidden';
+            minimizeBtn.textContent = '+';
+            minimizeBtn.title = 'Maximizar';
+            isMinimized = true;
+        } else {
+            panel.style.height = originalHeight;
+            panel.style.overflow = 'auto';
+            minimizeBtn.textContent = '−';
+            minimizeBtn.title = 'Minimizar';
+            isMinimized = false;
+        }
+    }
+
+    // Função para resetar posição
+    function resetPosition() {
+        panel.style.transform = '';
+        panel.style.position = 'fixed';
+        panel.style.top = '20px';
+        panel.style.right = '80px';
+        panel.style.left = 'auto';
+        xOffset = 0;
+        yOffset = 0;
+        currentX = 0;
+        currentY = 0;
+        
+        // Resetar tamanho também
+        panel.style.width = '';
+        panel.style.height = '';
+        if (isMinimized) {
+            toggleMinimize();
+        }
+    }
+
+    // Event listeners
+    header.addEventListener("mousedown", dragStart, false);
+    document.addEventListener("mouseup", dragEnd, false);
+    document.addEventListener("mousemove", drag, false);
+
+    // Touch events para dispositivos móveis
+    header.addEventListener("touchstart", dragStart, false);
+    document.addEventListener("touchend", dragEnd, false);
+    document.addEventListener("touchmove", drag, false);
+
+    // Botões de controle
+    minimizeBtn.addEventListener('click', toggleMinimize);
+    resetBtn.addEventListener('click', resetPosition);
+    
+    // Salvar posição no localStorage
+    function savePosition() {
+        const rect = panel.getBoundingClientRect();
+        localStorage.setItem('panelPosition', JSON.stringify({
+            x: currentX,
+            y: currentY,
+            width: panel.style.width,
+            height: panel.style.height,
+            isMinimized: isMinimized
+        }));
+    }
+    
+    // Carregar posição do localStorage
+    function loadPosition() {
+        const saved = localStorage.getItem('panelPosition');
+        if (saved) {
+            const pos = JSON.parse(saved);
+            if (pos.x !== undefined && pos.y !== undefined) {
+                currentX = pos.x;
+                currentY = pos.y;
+                xOffset = pos.x;
+                yOffset = pos.y;
+                panel.style.transform = `translate(${pos.x}px, ${pos.y}px)`;
+                panel.style.position = 'fixed';
+                panel.style.top = '0';
+                panel.style.right = 'auto';
+                panel.style.left = '0';
+            }
+            if (pos.width) panel.style.width = pos.width;
+            if (pos.height) panel.style.height = pos.height;
+            if (pos.isMinimized) {
+                isMinimized = false; // Reset para poder alternar
+                toggleMinimize();
+            }
+        }
+    }
+    
+    // Salvar posição quando o painel for movido ou redimensionado
+    document.addEventListener('mouseup', savePosition);
+    window.addEventListener('beforeunload', savePosition);
+    
+    // Carregar posição salva
+    loadPosition();
+}
+
+// Inicializar painel arrastável quando a página carregar
+document.addEventListener('DOMContentLoaded', function() {
+    initDraggablePanel();
+});
+
+// Funcionalidade do visualizador PDF
+class PDFViewer {
+    constructor() {
+        this.pdfDoc = null;
+        this.currentPage = 1;
+        this.totalPages = 0;
+        this.scale = 1.0;
+        this.canvas = null;
+        this.ctx = null;
+        this.isLoading = false;
+        
+        this.initElements();
+        this.initEventListeners();
+        this.initDragAndDrop();
+        this.initDraggable();
+        
+        // Configurar PDF.js worker
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+    }
+    
+    initElements() {
+        this.viewer = document.getElementById('pdfViewer');
+        this.content = document.getElementById('pdfContent');
+        this.uploadArea = document.getElementById('pdfUploadArea');
+        this.fileInput = document.getElementById('pdfFileInput');
+        this.pageInfo = document.getElementById('pdfPageInfo');
+        this.title = this.viewer.querySelector('.pdf-title');
+        
+        // Botões de controle
+        this.prevBtn = document.getElementById('pdfPrevPage');
+        this.nextBtn = document.getElementById('pdfNextPage');
+        this.zoomInBtn = document.getElementById('pdfZoomIn');
+        this.zoomOutBtn = document.getElementById('pdfZoomOut');
+        this.closeBtn = document.getElementById('closePdfViewer');
+        this.toggleBtn = document.getElementById('togglePdfViewer');
+    }
+    
+    initEventListeners() {
+        // Toggle do visualizador
+        this.toggleBtn.addEventListener('click', () => this.toggle());
+        this.closeBtn.addEventListener('click', () => this.hide());
+        
+        // Controles de navegação
+        this.prevBtn.addEventListener('click', () => this.prevPage());
+        this.nextBtn.addEventListener('click', () => this.nextPage());
+        
+        // Controles de zoom
+        this.zoomInBtn.addEventListener('click', () => this.zoomIn());
+        this.zoomOutBtn.addEventListener('click', () => this.zoomOut());
+        
+        // Upload de arquivo
+        this.uploadArea.addEventListener('click', () => this.fileInput.click());
+        this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+        
+        // Teclas de atalho
+        document.addEventListener('keydown', (e) => {
+            if (this.viewer.style.display === 'flex') {
+                switch(e.key) {
+                    case 'ArrowLeft':
+                        e.preventDefault();
+                        this.prevPage();
+                        break;
+                    case 'ArrowRight':
+                        e.preventDefault();
+                        this.nextPage();
+                        break;
+                    case '+':
+                    case '=':
+                        e.preventDefault();
+                        this.zoomIn();
+                        break;
+                    case '-':
+                        e.preventDefault();
+                        this.zoomOut();
+                        break;
+                    case 'Escape':
+                        e.preventDefault();
+                        this.hide();
+                        break;
+                }
+            }
+        });
+    }
+    
+    initDragAndDrop() {
+        // Drag and drop
+        this.uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            this.uploadArea.classList.add('dragover');
+        });
+        
+        this.uploadArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            this.uploadArea.classList.remove('dragover');
+        });
+        
+        this.uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            this.uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type === 'application/pdf') {
+                this.loadPDF(files[0]);
+            } else {
+                this.showError('Por favor, selecione um arquivo PDF válido.');
+            }
+        });
+    }
+    
+    initDraggable() {
+        const header = this.viewer.querySelector('.pdf-header');
+        let isDragging = false;
+        let currentX, currentY, initialX, initialY;
+        let xOffset = 0, yOffset = 0;
+        
+        header.addEventListener('mousedown', (e) => {
+            if (e.target.closest('.pdf-control-btn')) return;
+            
+            initialX = e.clientX - xOffset;
+            initialY = e.clientY - yOffset;
+            isDragging = true;
+            this.viewer.style.transition = 'none';
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                e.preventDefault();
+                currentX = e.clientX - initialX;
+                currentY = e.clientY - initialY;
+                xOffset = currentX;
+                yOffset = currentY;
+                
+                // Limitar movimento dentro da viewport
+                const rect = this.viewer.getBoundingClientRect();
+                const maxX = window.innerWidth - rect.width;
+                const maxY = window.innerHeight - rect.height;
+                
+                currentX = Math.max(0, Math.min(currentX, maxX));
+                currentY = Math.max(0, Math.min(currentY, maxY));
+                
+                this.viewer.style.transform = `translate(${currentX}px, ${currentY}px)`;
+            }
+        });
+        
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            this.viewer.style.transition = 'all 0.3s ease';
+        });
+    }
+    
+    toggle() {
+        if (this.viewer.style.display === 'flex') {
+            this.hide();
+        } else {
+            this.show();
+        }
+    }
+    
+    show() {
+        this.viewer.style.display = 'flex';
+    }
+    
+    hide() {
+        this.viewer.style.display = 'none';
+    }
+    
+    handleFileSelect(event) {
+        const file = event.target.files[0];
+        if (file && file.type === 'application/pdf') {
+            this.loadPDF(file);
+        } else {
+            this.showError('Por favor, selecione um arquivo PDF válido.');
+        }
+    }
+    
+    async loadPDF(file) {
+        if (this.isLoading) return;
+        
+        this.isLoading = true;
+        this.showLoading();
+        
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            this.pdfDoc = await pdfjsLib.getDocument(arrayBuffer).promise;
+            this.totalPages = this.pdfDoc.numPages;
+            this.currentPage = 1;
+            
+            this.title.textContent = `📄 ${file.name}`;
+            this.createCanvas();
+            await this.renderPage();
+            this.updateControls();
+            
+        } catch (error) {
+            console.error('Erro ao carregar PDF:', error);
+            this.showError('Erro ao carregar o arquivo PDF. Verifique se o arquivo não está corrompido.');
+        } finally {
+            this.isLoading = false;
+        }
+    }
+    
+    createCanvas() {
+        // Remover canvas anterior se existir
+        const existingCanvas = this.content.querySelector('.pdf-canvas');
+        if (existingCanvas) {
+            existingCanvas.remove();
+        }
+        
+        // Criar novo canvas
+        this.canvas = document.createElement('canvas');
+        this.canvas.className = 'pdf-canvas';
+        this.ctx = this.canvas.getContext('2d');
+        
+        // Limpar área de upload e adicionar canvas
+        this.content.innerHTML = '';
+        this.content.appendChild(this.canvas);
+    }
+    
+    async renderPage() {
+        if (!this.pdfDoc || this.isLoading) return;
+        
+        try {
+            const page = await this.pdfDoc.getPage(this.currentPage);
+            const viewport = page.getViewport({ scale: this.scale });
+            
+            this.canvas.height = viewport.height;
+            this.canvas.width = viewport.width;
+            
+            const renderContext = {
+                canvasContext: this.ctx,
+                viewport: viewport
+            };
+            
+            await page.render(renderContext).promise;
+            this.updatePageInfo();
+            
+        } catch (error) {
+            console.error('Erro ao renderizar página:', error);
+            this.showError('Erro ao renderizar a página do PDF.');
+        }
+    }
+    
+    prevPage() {
+        if (this.currentPage > 1) {
+            this.currentPage--;
+            this.renderPage();
+        }
+    }
+    
+    nextPage() {
+        if (this.currentPage < this.totalPages) {
+            this.currentPage++;
+            this.renderPage();
+        }
+    }
+    
+    zoomIn() {
+        this.scale = Math.min(this.scale * 1.2, 3.0);
+        this.renderPage();
+    }
+    
+    zoomOut() {
+        this.scale = Math.max(this.scale / 1.2, 0.5);
+        this.renderPage();
+    }
+    
+    updateControls() {
+        this.prevBtn.disabled = this.currentPage <= 1;
+        this.nextBtn.disabled = this.currentPage >= this.totalPages;
+        this.updatePageInfo();
+    }
+    
+    updatePageInfo() {
+        this.pageInfo.textContent = `${this.currentPage}/${this.totalPages}`;
+        this.updateControls();
+    }
+    
+    showLoading() {
+        this.content.innerHTML = '<div class="pdf-loading">Carregando PDF...</div>';
+    }
+    
+    showError(message) {
+        this.content.innerHTML = `<div class="pdf-error">${message}</div>`;
+    }
+}
+
+// Inicializar visualizador PDF quando a página carregar
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof pdfjsLib !== 'undefined') {
+        window.pdfViewer = new PDFViewer();
+    } else {
+        console.error('PDF.js não foi carregado corretamente');
+    }
+});
+
+// Gerenciador de Arquivos com Supabase Storage
+class FileManager {
+    constructor() {
+        this.currentPath = '';
+        this.selectedFiles = new Set();
+        this.isLoading = false;
+        this.bucketName = 'project-files';
+        
+        this.initElements();
+        this.initEventListeners();
+        this.initDragAndDrop();
+        this.initDraggable();
+        this.initContextMenu();
+        
+        // Criar bucket se não existir
+        this.ensureBucket();
+    }
+    
+    initElements() {
+        this.manager = document.getElementById('fileManager');
+        this.content = document.querySelector('.file-manager-content');
+        this.fileList = document.getElementById('fileList');
+        this.breadcrumb = document.getElementById('breadcrumb');
+        this.uploadArea = document.getElementById('fileUploadArea');
+        this.fileInput = document.getElementById('fileManagerInput');
+        this.contextMenu = document.getElementById('contextMenu');
+        
+        // Botões
+        this.toggleBtn = document.getElementById('toggleFileManager');
+        this.closeBtn = document.getElementById('closeFileManager');
+        this.refreshBtn = document.getElementById('refreshFiles');
+        this.createFolderBtn = document.getElementById('createFolder');
+        this.uploadBtn = document.getElementById('uploadFile');
+    }
+    
+    initEventListeners() {
+        // Toggle do gerenciador
+        this.toggleBtn.addEventListener('click', () => this.toggle());
+        this.closeBtn.addEventListener('click', () => this.hide());
+        this.refreshBtn.addEventListener('click', () => this.loadFiles());
+        
+        // Ações de pasta
+        this.createFolderBtn.addEventListener('click', () => this.createFolder());
+        this.uploadBtn.addEventListener('click', () => this.fileInput.click());
+        
+        // Upload de arquivos
+        this.uploadArea.addEventListener('click', () => this.fileInput.click());
+        this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+        
+        // Navegação breadcrumb
+        this.breadcrumb.addEventListener('click', (e) => {
+            if (e.target.classList.contains('breadcrumb-item')) {
+                const path = e.target.dataset.path;
+                this.navigateToPath(path);
+            }
+        });
+        
+        // Context menu
+        this.contextMenu.addEventListener('click', (e) => {
+            if (e.target.classList.contains('context-menu-item')) {
+                const action = e.target.dataset.action;
+                this.handleContextAction(action);
+                this.hideContextMenu();
+            }
+        });
+        
+        // Fechar context menu ao clicar fora
+        document.addEventListener('click', () => this.hideContextMenu());
+    }
+    
+    initDragAndDrop() {
+        this.uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            this.uploadArea.classList.add('dragover');
+        });
+        
+        this.uploadArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            this.uploadArea.classList.remove('dragover');
+        });
+        
+        this.uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            this.uploadArea.classList.remove('dragover');
+            
+            const files = Array.from(e.dataTransfer.files);
+            this.uploadFiles(files);
+        });
+    }
+    
+    initDraggable() {
+        const header = this.manager.querySelector('.file-manager-header');
+        let isDragging = false;
+        let currentX, currentY, initialX, initialY;
+        let xOffset = 0, yOffset = 0;
+        
+        header.addEventListener('mousedown', (e) => {
+            if (e.target.closest('.file-manager-btn')) return;
+            
+            initialX = e.clientX - xOffset;
+            initialY = e.clientY - yOffset;
+            isDragging = true;
+            this.manager.style.transition = 'none';
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                e.preventDefault();
+                currentX = e.clientX - initialX;
+                currentY = e.clientY - initialY;
+                xOffset = currentX;
+                yOffset = currentY;
+                
+                const rect = this.manager.getBoundingClientRect();
+                const maxX = window.innerWidth - rect.width;
+                const maxY = window.innerHeight - rect.height;
+                
+                currentX = Math.max(0, Math.min(currentX, maxX));
+                currentY = Math.max(0, Math.min(currentY, maxY));
+                
+                this.manager.style.transform = `translate(${currentX}px, ${currentY}px)`;
+            }
+        });
+        
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            this.manager.style.transition = 'all 0.3s ease';
+        });
+    }
+    
+    initContextMenu() {
+        this.fileList.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            
+            const fileItem = e.target.closest('.file-item');
+            if (fileItem) {
+                this.selectedFiles.clear();
+                this.selectedFiles.add(fileItem.dataset.path);
+                this.updateFileSelection();
+                this.showContextMenu(e.clientX, e.clientY);
+            }
+        });
+    }
+    
+    async ensureBucket() {
+        try {
+            const { data, error } = await supabase.storage.getBucket(this.bucketName);
+            if (error && error.statusCode === 404) {
+                // Bucket não existe, criar
+                const { error: createError } = await supabase.storage.createBucket(this.bucketName, {
+                    public: true,
+                    allowedMimeTypes: ['application/pdf', 'model/gltf-binary', 'model/gltf+json', 'image/*', 'application/octet-stream']
+                });
+                if (createError) {
+                    console.error('Erro ao criar bucket:', createError);
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao verificar bucket:', error);
+        }
+    }
+    
+    toggle() {
+        if (this.manager.style.display === 'flex') {
+            this.hide();
+        } else {
+            this.show();
+        }
+    }
+    
+    show() {
+        this.manager.style.display = 'flex';
+        this.loadFiles();
+    }
+    
+    hide() {
+        this.manager.style.display = 'none';
+    }
+    
+    async loadFiles() {
+        if (this.isLoading) return;
+        
+        this.isLoading = true;
+        this.showLoading();
+        
+        try {
+            const { data, error } = await supabase.storage
+                .from(this.bucketName)
+                .list(this.currentPath, {
+                    limit: 100,
+                    offset: 0
+                });
+            
+            if (error) {
+                console.error('Erro ao carregar arquivos:', error);
+                this.showError('Erro ao carregar arquivos');
+                return;
+            }
+            
+            this.renderFiles(data || []);
+            this.updateBreadcrumb();
+            
+        } catch (error) {
+            console.error('Erro ao carregar arquivos:', error);
+            this.showError('Erro ao carregar arquivos');
+        } finally {
+            this.isLoading = false;
+        }
+    }
+    
+    renderFiles(files) {
+        this.fileList.innerHTML = '';
+        
+        // Adicionar botão "voltar" se não estiver na raiz
+        if (this.currentPath) {
+            const backItem = this.createFileItem({
+                name: '..',
+                id: 'back',
+                metadata: { isFolder: true }
+            });
+            this.fileList.appendChild(backItem);
+        }
+        
+        // Separar pastas e arquivos
+        const folders = files.filter(f => !f.metadata?.size);
+        const regularFiles = files.filter(f => f.metadata?.size);
+        
+        // Renderizar pastas primeiro
+        folders.forEach(folder => {
+            const item = this.createFileItem(folder);
+            this.fileList.appendChild(item);
+        });
+        
+        // Renderizar arquivos
+        regularFiles.forEach(file => {
+            const item = this.createFileItem(file);
+            this.fileList.appendChild(item);
+        });
+    }
+    
+    createFileItem(file) {
+        const li = document.createElement('li');
+        li.className = 'file-item';
+        li.dataset.path = file.name;
+        li.dataset.isFolder = !file.metadata?.size ? 'true' : 'false';
+        
+        const icon = this.getFileIcon(file);
+        const size = file.metadata?.size ? this.formatFileSize(file.metadata.size) : '';
+        
+        li.innerHTML = `
+            <span class="file-icon">${icon}</span>
+            <span class="file-name">${file.name}</span>
+            <span class="file-size">${size}</span>
+            <div class="file-actions">
+                ${file.name !== '..' ? `
+                    <button class="file-action-btn" data-action="download" title="Download">⬇</button>
+                    <button class="file-action-btn" data-action="rename" title="Renomear">✏</button>
+                    <button class="file-action-btn delete" data-action="delete" title="Excluir">🗑</button>
+                ` : ''}
+            </div>
+        `;
+        
+        // Event listeners
+        li.addEventListener('click', (e) => {
+            if (e.target.classList.contains('file-action-btn')) {
+                e.stopPropagation();
+                const action = e.target.dataset.action;
+                this.handleFileAction(action, file);
+            } else {
+                this.handleFileClick(file);
+            }
+        });
+        
+        return li;
+    }
+    
+    getFileIcon(file) {
+        if (file.name === '..') return '⬆️';
+        if (!file.metadata?.size) return '📁';
+        
+        const ext = file.name.split('.').pop().toLowerCase();
+        const iconMap = {
+            'pdf': '📄',
+            'glb': '🎯',
+            'gltf': '🎯',
+            'jpg': '🖼️',
+            'jpeg': '🖼️',
+            'png': '🖼️',
+            'dwg': '📐',
+            'ifc': '🏗️',
+            'rvt': '🏠'
+        };
+        
+        return iconMap[ext] || '📄';
+    }
+    
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+    
+    handleFileClick(file) {
+        if (file.name === '..') {
+            // Voltar para pasta pai
+            const pathParts = this.currentPath.split('/').filter(p => p);
+            pathParts.pop();
+            this.currentPath = pathParts.join('/');
+            this.loadFiles();
+        } else if (!file.metadata?.size) {
+            // É uma pasta, navegar para ela
+            this.currentPath = this.currentPath ? `${this.currentPath}/${file.name}` : file.name;
+            this.loadFiles();
+        } else {
+            // É um arquivo, abrir
+            this.openFile(file);
+        }
+    }
+    
+    async openFile(file) {
+        const ext = file.name.split('.').pop().toLowerCase();
+        const filePath = this.currentPath ? `${this.currentPath}/${file.name}` : file.name;
+        
+        try {
+            const { data } = supabase.storage
+                .from(this.bucketName)
+                .getPublicUrl(filePath);
+            
+            if (ext === 'pdf') {
+                // Abrir no visualizador PDF
+                if (window.pdfViewer) {
+                    window.pdfViewer.show();
+                    // Carregar PDF da URL
+                    fetch(data.publicUrl)
+                        .then(response => response.blob())
+                        .then(blob => {
+                            const file = new File([blob], file.name, { type: 'application/pdf' });
+                            window.pdfViewer.loadPDF(file);
+                        });
+                }
+            } else if (ext === 'glb' || ext === 'gltf') {
+                // Carregar no visualizador 3D
+                settings.externalModelUrl = data.publicUrl;
+                loadExternalModel();
+            } else {
+                // Abrir em nova aba
+                window.open(data.publicUrl, '_blank');
+            }
+        } catch (error) {
+            console.error('Erro ao abrir arquivo:', error);
+            alert('Erro ao abrir arquivo');
+        }
+    }
+    
+    async handleFileAction(action, file) {
+        const filePath = this.currentPath ? `${this.currentPath}/${file.name}` : file.name;
+        
+        switch (action) {
+            case 'download':
+                await this.downloadFile(filePath);
+                break;
+            case 'rename':
+                await this.renameFile(file);
+                break;
+            case 'delete':
+                await this.deleteFile(filePath);
+                break;
+        }
+    }
+    
+    async downloadFile(filePath) {
+        try {
+            const { data } = supabase.storage
+                .from(this.bucketName)
+                .getPublicUrl(filePath);
+            
+            const link = document.createElement('a');
+            link.href = data.publicUrl;
+            link.download = filePath.split('/').pop();
+            link.click();
+        } catch (error) {
+            console.error('Erro ao fazer download:', error);
+            alert('Erro ao fazer download do arquivo');
+        }
+    }
+    
+    async renameFile(file) {
+        const newName = prompt('Novo nome:', file.name);
+        if (!newName || newName === file.name) return;
+        
+        const oldPath = this.currentPath ? `${this.currentPath}/${file.name}` : file.name;
+        const newPath = this.currentPath ? `${this.currentPath}/${newName}` : newName;
+        
+        try {
+            const { error } = await supabase.storage
+                .from(this.bucketName)
+                .move(oldPath, newPath);
+            
+            if (error) {
+                console.error('Erro ao renomear:', error);
+                alert('Erro ao renomear arquivo');
+            } else {
+                this.loadFiles();
+            }
+        } catch (error) {
+            console.error('Erro ao renomear:', error);
+            alert('Erro ao renomear arquivo');
+        }
+    }
+    
+    async deleteFile(filePath) {
+        if (!confirm('Tem certeza que deseja excluir este arquivo?')) return;
+        
+        try {
+            const { error } = await supabase.storage
+                .from(this.bucketName)
+                .remove([filePath]);
+            
+            if (error) {
+                console.error('Erro ao excluir:', error);
+                alert('Erro ao excluir arquivo');
+            } else {
+                this.loadFiles();
+            }
+        } catch (error) {
+            console.error('Erro ao excluir:', error);
+            alert('Erro ao excluir arquivo');
+        }
+    }
+    
+    async createFolder() {
+        const folderName = prompt('Nome da pasta:');
+        if (!folderName) return;
+        
+        const folderPath = this.currentPath ? `${this.currentPath}/${folderName}/.keep` : `${folderName}/.keep`;
+        
+        try {
+            const { error } = await supabase.storage
+                .from(this.bucketName)
+                .upload(folderPath, new Blob([''], { type: 'text/plain' }));
+            
+            if (error) {
+                console.error('Erro ao criar pasta:', error);
+                alert('Erro ao criar pasta');
+            } else {
+                this.loadFiles();
+            }
+        } catch (error) {
+            console.error('Erro ao criar pasta:', error);
+            alert('Erro ao criar pasta');
+        }
+    }
+    
+    async handleFileSelect(event) {
+        const files = Array.from(event.target.files);
+        await this.uploadFiles(files);
+        event.target.value = ''; // Reset input
+    }
+    
+    async uploadFiles(files) {
+        if (files.length === 0) return;
+        
+        this.showLoading();
+        
+        for (const file of files) {
+            try {
+                const filePath = this.currentPath ? `${this.currentPath}/${file.name}` : file.name;
+                
+                const { error } = await supabase.storage
+                    .from(this.bucketName)
+                    .upload(filePath, file, {
+                        cacheControl: '3600',
+                        upsert: true
+                    });
+                
+                if (error) {
+                    console.error(`Erro ao fazer upload de ${file.name}:`, error);
+                    alert(`Erro ao fazer upload de ${file.name}`);
+                }
+            } catch (error) {
+                console.error(`Erro ao fazer upload de ${file.name}:`, error);
+                alert(`Erro ao fazer upload de ${file.name}`);
+            }
+        }
+        
+        this.loadFiles();
+    }
+    
+    navigateToPath(path) {
+        this.currentPath = path;
+        this.loadFiles();
+    }
+    
+    updateBreadcrumb() {
+        const parts = this.currentPath ? this.currentPath.split('/') : [];
+        let html = '<span class="breadcrumb-item" data-path="">📁 Raiz</span>';
+        
+        let currentPath = '';
+        parts.forEach((part, index) => {
+            currentPath += (index > 0 ? '/' : '') + part;
+            html += `<span class="breadcrumb-separator">/</span>`;
+            html += `<span class="breadcrumb-item" data-path="${currentPath}">📁 ${part}</span>`;
+        });
+        
+        this.breadcrumb.innerHTML = html;
+    }
+    
+    updateFileSelection() {
+        this.fileList.querySelectorAll('.file-item').forEach(item => {
+            if (this.selectedFiles.has(item.dataset.path)) {
+                item.classList.add('selected');
+            } else {
+                item.classList.remove('selected');
+            }
+        });
+    }
+    
+    showContextMenu(x, y) {
+        this.contextMenu.style.left = x + 'px';
+        this.contextMenu.style.top = y + 'px';
+        this.contextMenu.style.display = 'block';
+    }
+    
+    hideContextMenu() {
+        this.contextMenu.style.display = 'none';
+    }
+    
+    handleContextAction(action) {
+        const selectedPath = Array.from(this.selectedFiles)[0];
+        if (!selectedPath) return;
+        
+        // Implementar ações do context menu
+        console.log(`Ação ${action} para ${selectedPath}`);
+    }
+    
+    showLoading() {
+        this.fileList.innerHTML = '<li class="loading-spinner"><div class="spinner-small"></div>Carregando...</li>';
+    }
+    
+    showError(message) {
+        this.fileList.innerHTML = `<li style="color: #ff6b6b; text-align: center; padding: 20px;">${message}</li>`;
+    }
+}
+
+// Inicializar gerenciador de arquivos quando a página carregar
+document.addEventListener('DOMContentLoaded', function() {
+    window.fileManager = new FileManager();
+});

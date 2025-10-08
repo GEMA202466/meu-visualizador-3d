@@ -934,8 +934,8 @@
                 <h3>📁 Modelo Externo</h3>
                 <div class="control-item-full">
                     <label for="fileUpload">Upload de arquivo 3D:</label>
-                    <input type="file" id="fileUpload" accept=".glb,.gltf,.obj,.fbx,.stl,.dae,.3ds,.ply" style="width: 100%; margin-bottom: 8px; padding: 6px; border: 1px solid #555; border-radius: 4px; background: #333; color: white;">
-                    <div style="font-size: 11px; color: #888; margin-bottom: 8px;">Suporta: GLB, GLTF, OBJ, FBX, STL, DAE, 3DS, PLY</div>
+                    <input type="file" id="fileUpload" accept=".glb,.gltf,.obj,.fbx,.stl,.dae,.3ds,.ply,.ifc" style="width: 100%; margin-bottom: 8px; padding: 6px; border: 1px solid #555; border-radius: 4px; background: #333; color: white;">
+                    <div style="font-size: 11px; color: #888; margin-bottom: 8px;">Suporta: GLB, GLTF, OBJ, FBX, STL, DAE, 3DS, PLY, <strong>IFC</strong></div>
                     <div style="text-align: center; margin: 10px 0; color: #888; font-size: 12px;">OU</div>
                     <label for="externalModelUrl">URL do modelo:</label>
                     <input type="url" id="externalModelUrl" placeholder="https://exemplo.com/modelo.glb" style="width: 100%; margin-bottom: 8px;">
@@ -1120,6 +1120,19 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/3DSLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/PLYLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <!-- ThatOpen Components para IFC -->
+    <script type="module">
+        // Importar ThatOpen Components para IFC
+        window.ThatOpenComponents = await import('https://cdn.jsdelivr.net/npm/@thatopen/components@3.1.4/+esm');
+        window.ThatOpenUI = await import('https://cdn.jsdelivr.net/npm/@thatopen/ui@2.1.8/+esm');
+        
+        // Disponibilizar globalmente
+        window.OBC = window.ThatOpenComponents;
+        window.BUI = window.ThatOpenUI;
+        
+        console.log('ThatOpen Components carregado para suporte IFC');
+    </script>
     
     <script src="script.js"></script>
     

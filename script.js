@@ -11,6 +11,11 @@ let gridHelper;
 let rotationPointIndicator;
 let autoRotate = false;
 
+// Variáveis globais para ThatOpen Components IFC
+let ifcComponents = null;
+let ifcWorld = null;
+let ifcLoader = null;
+
 // Configurações padrão
 const settings = {
     backgroundColor: '#f0f0f0',
@@ -549,18 +554,23 @@ function sendWhatsAppMessage() {
 
 function loadModelFromFile(file) {
     if (!file) {
-        alert('Por favor, selecione um arquivo GLB válido.');
+        alert('Por favor, selecione um arquivo 3D válido.');
         return;
     }
     
-    // Verificar se é um arquivo GLB ou GLTF
-    const validTypes = ['model/gltf-binary', 'model/gltf+json', 'application/octet-stream'];
-    const validExtensions = ['.glb', '.gltf'];
+    // Verificar se é um formato suportado
     const fileName = file.name.toLowerCase();
-    const hasValidExtension = validExtensions.some(ext => fileName.endsWith(ext));
+    const extension = fileName.split('.').pop();
+    const supportedFormats = ['glb', 'gltf', 'obj', 'fbx', 'stl', 'dae', '3ds', 'ply', 'ifc'];
     
-    if (!validTypes.includes(file.type) && !hasValidExtension) {
-        alert('Por favor, selecione um arquivo GLB ou GLTF válido.');
+    if (!supportedFormats.includes(extension)) {
+        alert(`Formato não suportado. Formatos aceitos: ${supportedFormats.join(', ').toUpperCase()}`);
+        return;
+    }
+    
+    // Se for IFC, usar função específica
+    if (extension === 'ifc') {
+        loadIFCFromFile(file);
         return;
     }
     
@@ -708,6 +718,10 @@ function loadModel(modelUrl = null) {
         case 'ply':
             loader = new THREE.PLYLoader();
             break;
+        case 'ifc':
+            // IFC será tratado separadamente usando ThatOpen Components
+            loadIFCModel(url);
+            return;
         default:
             console.error('Formato de arquivo não suportado:', extension);
             document.getElementById('loading').innerHTML = 
@@ -843,6 +857,231 @@ function updateModelOpacity() {
                 child.material.opacity = settings.modelOpacity;
             }
         });
+    }
+}
+
+// Função para inicializar ThatOpen Components para IFC
+async function initIFCComponents() {
+    if (ifcComponents) return true; // Já inicializado
+    
+    try {
+        // Aguardar carregamento das bibliotecas
+        let attempts = 0;
+        while (!window.OBC && attempts < 50) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        }
+        
+        if (!window.OBC) {
+            throw new Error('ThatOpen Components não foi carregado');
+        }
+        
+        const OBC = window.OBC;
+        
+        // Criar componentes
+        ifcComponents = new OBC.Components();
+        
+        // Criar mundo
+        const worlds = ifcComponents.get(OBC.Worlds);
+        ifcWorld = worlds.create();
+        
+        // Configurar cena simples
+        ifcWorld.scene = new OBC.SimpleScene(ifcComponents);
+        ifcWorld.renderer = new OBC.SimpleRenderer(ifcComponents, renderer.domElement.parentElement);
+        ifcWorld.camera = new OBC.SimpleCamera(ifcComponents);
+        
+        // Configurar IfcLoader
+        ifcLoader = ifcComponents.get(OBC.IfcLoader);
+        await ifcLoader.setup({
+            autoSetWasm: false,
+            wasm: {
+                path: "https://unpkg.com/web-ifc@0.0.69/",
+                absolute: true,
+            },
+        });
+        
+        // Inicializar componentes
+        ifcComponents.init();
+        
+        console.log('ThatOpen Components IFC inicializado com sucesso');
+        return true;
+    } catch (error) {
+        console.error('Erro ao inicializar ThatOpen Components:', error);
+        return false;
+    }
+}
+
+// Função para carregar modelos IFC de URL
+async function loadIFCModel(url) {
+    try {
+        // Mostrar loading
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('loading').textContent = 'Carregando modelo IFC...';
+        
+        // Inicializar componentes IFC se necessário
+        const initialized = await initIFCComponents();
+        if (!initialized) {
+            throw new Error('Falha ao inicializar componentes IFC');
+        }
+        
+        // Remover modelo anterior se existir
+        if (model) {
+            scene.remove(model);
+            model = null;
+        }
+        
+        // Carregar arquivo IFC
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Erro HTTP: ${response.status}`);
+        }
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = new Uint8Array(arrayBuffer);
+        
+        // Carregar IFC usando ThatOpen Components
+        const fragments = await ifcLoader.load(buffer, false, "ifc-model", {
+            processData: {
+                progressCallback: (progress) => {
+                    console.log('Progresso IFC:', progress);
+                    document.getElementById('loading').textContent = 
+                        `Carregando IFC... ${Math.round(progress * 100)}%`;
+                },
+            },
+        });
+        
+        // Processar fragments e adicionar à cena principal
+        await processIFCFragments(fragments);
+        
+        console.log('Modelo IFC carregado com sucesso!');
+        
+    } catch (error) {
+        console.error('Erro ao carregar modelo IFC:', error);
+        document.getElementById('loading').innerHTML = 
+            '<div style="color: #ff6b6b;">❌ Erro ao carregar IFC</div>' +
+            `<div style="font-size: 12px; margin-top: 10px;">${error.message}</div>`;
+    }
+}
+
+// Função para carregar IFC de arquivo local
+async function loadIFCFromFile(file) {
+    try {
+        // Mostrar loading
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('loading').textContent = 'Processando arquivo IFC...';
+        
+        // Inicializar componentes IFC se necessário
+        const initialized = await initIFCComponents();
+        if (!initialized) {
+            throw new Error('Falha ao inicializar componentes IFC');
+        }
+        
+        // Remover modelo anterior se existir
+        if (model) {
+            scene.remove(model);
+            model = null;
+        }
+        
+        // Ler arquivo como ArrayBuffer
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = new Uint8Array(arrayBuffer);
+        
+        // Carregar IFC usando ThatOpen Components
+        const fragments = await ifcLoader.load(buffer, false, file.name, {
+            processData: {
+                progressCallback: (progress) => {
+                    console.log('Progresso IFC:', progress);
+                    document.getElementById('loading').textContent = 
+                        `Processando IFC... ${Math.round(progress * 100)}%`;
+                },
+            },
+        });
+        
+        // Processar fragments e adicionar à cena principal
+        await processIFCFragments(fragments);
+        
+        console.log('Arquivo IFC carregado com sucesso!');
+        
+    } catch (error) {
+        console.error('Erro ao processar arquivo IFC:', error);
+        document.getElementById('loading').innerHTML = 
+            '<div style="color: #ff6b6b;">❌ Erro ao processar IFC</div>' +
+            `<div style="font-size: 12px; margin-top: 10px;">${error.message}</div>`;
+    }
+}
+
+// Função para processar fragments IFC e adicionar à cena
+async function processIFCFragments(fragments) {
+    try {
+        if (!fragments || Object.keys(fragments).length === 0) {
+            throw new Error('Nenhum fragmento foi gerado do arquivo IFC');
+        }
+        
+        const group = new THREE.Group();
+        
+        // Iterar sobre os fragments
+        for (const fragmentID in fragments) {
+            const fragment = fragments[fragmentID];
+            
+            if (fragment && fragment.mesh) {
+                // Clonar a geometria e material para nossa cena
+                const geometry = fragment.mesh.geometry.clone();
+                const material = fragment.mesh.material.clone();
+                
+                // Criar mesh para nossa cena
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.position.copy(fragment.mesh.position);
+                mesh.rotation.copy(fragment.mesh.rotation);
+                mesh.scale.copy(fragment.mesh.scale);
+                
+                // Configurar sombras
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                
+                group.add(mesh);
+            }
+        }
+        
+        if (group.children.length === 0) {
+            throw new Error('Nenhuma geometria válida encontrada no arquivo IFC');
+        }
+        
+        model = group;
+        
+        // Centralizar e escalar o modelo
+        const box = new THREE.Box3().setFromObject(model);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        
+        // Mover modelo para o centro
+        model.position.sub(center);
+        
+        // Escalar para caber na tela
+        const maxDim = Math.max(size.x, size.y, size.z);
+        if (maxDim > 0) {
+            const scale = 10 / maxDim;
+            model.scale.setScalar(scale);
+        }
+        
+        scene.add(model);
+        
+        // Ajustar câmera
+        const distance = maxDim > 0 ? maxDim * 2 : 10;
+        camera.position.set(distance * 1.5, distance * 1.5, distance * 1.5);
+        controls.target.set(0, 0, 0);
+        controls.update();
+        
+        // Aplicar configurações atuais
+        updateModelColors();
+        
+        // Disponibilizar globalmente para debug
+        window.model = model;
+        window.ifcFragments = fragments;
+        
+        // Esconder loading
+        document.getElementById('loading').style.display = 'none';
+        
+    } catch (error) {
+        throw error;
     }
 }
 
@@ -2128,7 +2367,7 @@ class FileManager {
                             window.pdfViewer.loadPDF(file);
                         });
                 }
-            } else if (ext === 'glb' || ext === 'gltf') {
+            } else if (ext === 'glb' || ext === 'gltf' || ext === 'obj' || ext === 'fbx' || ext === 'stl' || ext === 'dae' || ext === '3ds' || ext === 'ply' || ext === 'ifc') {
                 // Carregar no visualizador 3D
                 settings.externalModelUrl = data.publicUrl;
                 loadExternalModel();
